@@ -230,6 +230,7 @@ func TestFileConfigManager_Validate(t *testing.T) {
 						Separator: "-",
 					},
 				},
+				Commit: GetDefaultConfig().Commit,
 			},
 			wantErr: true,
 		},

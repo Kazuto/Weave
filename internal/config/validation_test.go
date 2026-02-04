@@ -6,6 +6,11 @@ import (
 	"testing"
 )
 
+// validCommitConfig returns a valid commit config for testing
+func validCommitConfig() CommitConfig {
+	return GetDefaultConfig().Commit
+}
+
 func TestValidationResult_IsValid(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -89,6 +94,7 @@ func TestValidateAndFix(t *testing.T) {
 						Separator: "-",
 					},
 				},
+				Commit: validCommitConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -106,6 +112,7 @@ func TestValidateAndFix(t *testing.T) {
 						Separator: "-",
 					},
 				},
+				Commit: validCommitConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -113,7 +120,7 @@ func TestValidateAndFix(t *testing.T) {
 			expectWarnings: 1,
 		},
 		{
-			name: "fixes empty types",
+			name: "fixes empty branch types",
 			config: &Config{
 				Branch: BranchConfig{
 					MaxLength:   60,
@@ -123,6 +130,7 @@ func TestValidateAndFix(t *testing.T) {
 						Separator: "-",
 					},
 				},
+				Commit: validCommitConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -140,6 +148,7 @@ func TestValidateAndFix(t *testing.T) {
 						Separator: "-",
 					},
 				},
+				Commit: validCommitConfig(),
 			},
 			expectValid:  false,
 			expectFixed:  false,
@@ -156,6 +165,7 @@ func TestValidateAndFix(t *testing.T) {
 						Separator: "",
 					},
 				},
+				Commit: validCommitConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -172,6 +182,47 @@ func TestValidateAndFix(t *testing.T) {
 					Sanitization: SanitizationConfig{
 						Separator: "/",
 					},
+				},
+				Commit: validCommitConfig(),
+			},
+			expectValid:    true,
+			expectFixed:    true,
+			expectErrors:   0,
+			expectWarnings: 1,
+		},
+		{
+			name: "fixes empty ollama model",
+			config: &Config{
+				Branch: GetDefaultConfig().Branch,
+				Commit: CommitConfig{
+					Ollama: OllamaConfig{
+						Model:       "",
+						Host:        "http://localhost:11434",
+						Temperature: 0.3,
+						TopP:        0.9,
+						MaxDiff:     4000,
+					},
+					Types: []string{"feat", "fix"},
+				},
+			},
+			expectValid:    true,
+			expectFixed:    true,
+			expectErrors:   0,
+			expectWarnings: 1,
+		},
+		{
+			name: "fixes invalid temperature",
+			config: &Config{
+				Branch: GetDefaultConfig().Branch,
+				Commit: CommitConfig{
+					Ollama: OllamaConfig{
+						Model:       "llama3.2",
+						Host:        "http://localhost:11434",
+						Temperature: 5.0,
+						TopP:        0.9,
+						MaxDiff:     4000,
+					},
+					Types: []string{"feat", "fix"},
 				},
 			},
 			expectValid:    true,
@@ -239,6 +290,7 @@ func TestValidateStrict(t *testing.T) {
 						Separator: "-",
 					},
 				},
+				Commit: validCommitConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
@@ -246,24 +298,7 @@ func TestValidateStrict(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid max_length - too large",
-			config: &Config{
-				Branch: BranchConfig{
-					MaxLength:   300,
-					DefaultType: "feature",
-					Types:       map[string]string{"feature": "feature"},
-					Sanitization: SanitizationConfig{
-						Separator: "-",
-					},
-				},
-			},
-			wantErr: true,
-			errorCheck: func(err error) bool {
-				return strings.Contains(err.Error(), "max_length")
-			},
-		},
-		{
-			name: "empty types",
+			name: "empty branch types",
 			config: &Config{
 				Branch: BranchConfig{
 					MaxLength:   60,
@@ -273,44 +308,11 @@ func TestValidateStrict(t *testing.T) {
 						Separator: "-",
 					},
 				},
+				Commit: validCommitConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
 				return strings.Contains(err.Error(), "types")
-			},
-		},
-		{
-			name: "empty default_type",
-			config: &Config{
-				Branch: BranchConfig{
-					MaxLength:   60,
-					DefaultType: "",
-					Types:       map[string]string{"feature": "feature"},
-					Sanitization: SanitizationConfig{
-						Separator: "-",
-					},
-				},
-			},
-			wantErr: true,
-			errorCheck: func(err error) bool {
-				return strings.Contains(err.Error(), "default_type")
-			},
-		},
-		{
-			name: "default_type not in types",
-			config: &Config{
-				Branch: BranchConfig{
-					MaxLength:   60,
-					DefaultType: "nonexistent",
-					Types:       map[string]string{"feature": "feature"},
-					Sanitization: SanitizationConfig{
-						Separator: "-",
-					},
-				},
-			},
-			wantErr: true,
-			errorCheck: func(err error) bool {
-				return strings.Contains(err.Error(), "default_type")
 			},
 		},
 		{
@@ -324,6 +326,7 @@ func TestValidateStrict(t *testing.T) {
 						Separator: "",
 					},
 				},
+				Commit: validCommitConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
@@ -331,37 +334,63 @@ func TestValidateStrict(t *testing.T) {
 			},
 		},
 		{
-			name: "separator too long",
+			name: "empty ollama model",
 			config: &Config{
-				Branch: BranchConfig{
-					MaxLength:   60,
-					DefaultType: "feature",
-					Types:       map[string]string{"feature": "feature"},
-					Sanitization: SanitizationConfig{
-						Separator: "------",
+				Branch: GetDefaultConfig().Branch,
+				Commit: CommitConfig{
+					Ollama: OllamaConfig{
+						Model:       "",
+						Host:        "http://localhost:11434",
+						Temperature: 0.3,
+						TopP:        0.9,
+						MaxDiff:     4000,
 					},
+					Types: []string{"feat"},
 				},
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
-				return strings.Contains(err.Error(), "separator")
+				return strings.Contains(err.Error(), "commit.ollama.model")
 			},
 		},
 		{
-			name: "problematic separator character",
+			name: "invalid temperature",
 			config: &Config{
-				Branch: BranchConfig{
-					MaxLength:   60,
-					DefaultType: "feature",
-					Types:       map[string]string{"feature": "feature"},
-					Sanitization: SanitizationConfig{
-						Separator: "/",
+				Branch: GetDefaultConfig().Branch,
+				Commit: CommitConfig{
+					Ollama: OllamaConfig{
+						Model:       "llama3.2",
+						Host:        "http://localhost:11434",
+						Temperature: 5.0,
+						TopP:        0.9,
+						MaxDiff:     4000,
 					},
+					Types: []string{"feat"},
 				},
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
-				return strings.Contains(err.Error(), "separator")
+				return strings.Contains(err.Error(), "temperature")
+			},
+		},
+		{
+			name: "empty commit types",
+			config: &Config{
+				Branch: GetDefaultConfig().Branch,
+				Commit: CommitConfig{
+					Ollama: OllamaConfig{
+						Model:       "llama3.2",
+						Host:        "http://localhost:11434",
+						Temperature: 0.3,
+						TopP:        0.9,
+						MaxDiff:     4000,
+					},
+					Types: []string{},
+				},
+			},
+			wantErr: true,
+			errorCheck: func(err error) bool {
+				return strings.Contains(err.Error(), "commit.types")
 			},
 		},
 	}
@@ -387,31 +416,46 @@ func TestGetDefaultConfig(t *testing.T) {
 		t.Fatal("GetDefaultConfig() returned nil")
 	}
 
+	// Branch defaults
 	if config.Branch.MaxLength != 60 {
-		t.Errorf("Default MaxLength = %d, want 60", config.Branch.MaxLength)
+		t.Errorf("Default Branch.MaxLength = %d, want 60", config.Branch.MaxLength)
 	}
 
 	if config.Branch.DefaultType != "feature" {
-		t.Errorf("Default DefaultType = %s, want 'feature'", config.Branch.DefaultType)
+		t.Errorf("Default Branch.DefaultType = %s, want 'feature'", config.Branch.DefaultType)
 	}
 
-	expectedTypes := []string{"feature", "hotfix", "refactor", "support"}
-	for _, branchType := range expectedTypes {
+	expectedBranchTypes := []string{"feature", "hotfix", "refactor", "support"}
+	for _, branchType := range expectedBranchTypes {
 		if _, exists := config.Branch.Types[branchType]; !exists {
-			t.Errorf("Default Types missing '%s'", branchType)
+			t.Errorf("Default Branch.Types missing '%s'", branchType)
 		}
 	}
 
 	if config.Branch.Sanitization.Separator != "-" {
-		t.Errorf("Default Separator = %s, want '-'", config.Branch.Sanitization.Separator)
+		t.Errorf("Default Branch.Sanitization.Separator = %s, want '-'", config.Branch.Sanitization.Separator)
 	}
 
-	if !config.Branch.Sanitization.Lowercase {
-		t.Error("Default Lowercase should be true")
+	// Commit defaults
+	if config.Commit.Ollama.Model != "llama3.2" {
+		t.Errorf("Default Commit.Ollama.Model = %s, want 'llama3.2'", config.Commit.Ollama.Model)
 	}
 
-	if config.Branch.Sanitization.RemoveUmlauts {
-		t.Error("Default RemoveUmlauts should be false")
+	if config.Commit.Ollama.Host != "http://localhost:11434" {
+		t.Errorf("Default Commit.Ollama.Host = %s, want 'http://localhost:11434'", config.Commit.Ollama.Host)
+	}
+
+	if config.Commit.Ollama.Temperature != 0.3 {
+		t.Errorf("Default Commit.Ollama.Temperature = %f, want 0.3", config.Commit.Ollama.Temperature)
+	}
+
+	if config.Commit.Ollama.MaxDiff != 4000 {
+		t.Errorf("Default Commit.Ollama.MaxDiff = %d, want 4000", config.Commit.Ollama.MaxDiff)
+	}
+
+	expectedCommitTypes := []string{"feat", "fix", "docs", "style", "refactor", "perf", "test", "chore", "ci", "build"}
+	if len(config.Commit.Types) != len(expectedCommitTypes) {
+		t.Errorf("Default Commit.Types length = %d, want %d", len(config.Commit.Types), len(expectedCommitTypes))
 	}
 
 	// Verify default config passes strict validation

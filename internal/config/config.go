@@ -2,6 +2,21 @@ package config
 
 type Config struct {
 	Branch BranchConfig `yaml:"branch"`
+	Commit CommitConfig `yaml:"commit"`
+}
+
+type CommitConfig struct {
+	Ollama OllamaConfig `yaml:"ollama"`
+	Types  []string     `yaml:"types"`
+	Prompt string       `yaml:"prompt"`
+}
+
+type OllamaConfig struct {
+	Model       string  `yaml:"model"`
+	Host        string  `yaml:"host"`
+	Temperature float64 `yaml:"temperature"`
+	TopP        float64 `yaml:"top_p"`
+	MaxDiff     int     `yaml:"max_diff"`
 }
 
 type BranchConfig struct {
