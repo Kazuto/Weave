@@ -1,16 +1,12 @@
 package config
 
 import (
-	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
-
-//go:embed config.yaml.tmpl
-var configTemplate []byte
 
 const (
 	appName    = "weave"
@@ -54,7 +50,14 @@ func (m *FileConfigManager) EnsureExists() error {
 		return fmt.Errorf("failed to create configuration directory: %w", err)
 	}
 
-	if err := os.WriteFile(m.configPath, configTemplate, 0600); err != nil {
+	data, err := yaml.Marshal(GetDefaultConfig())
+	if err != nil {
+		return fmt.Errorf("failed to generate default configuration: %w", err)
+	}
+
+	content := append([]byte("# Weave configuration file\n\n"), data...)
+
+	if err := os.WriteFile(m.configPath, content, 0600); err != nil {
 		return fmt.Errorf("failed to write configuration file: %w", err)
 	}
 

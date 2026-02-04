@@ -215,9 +215,23 @@ func TestFileConfigManager_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "valid empty config",
-			config:  &Config{},
+			name:    "valid config",
+			config:  GetDefaultConfig(),
 			wantErr: false,
+		},
+		{
+			name: "invalid max_length",
+			config: &Config{
+				Branch: BranchConfig{
+					MaxLength:   5,
+					DefaultType: "feature",
+					Types:       map[string]string{"feature": "feature"},
+					Sanitization: SanitizationConfig{
+						Separator: "-",
+					},
+				},
+			},
+			wantErr: true,
 		},
 	}
 
