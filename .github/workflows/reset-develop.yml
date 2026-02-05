@@ -1,0 +1,33 @@
+name: Reset Develop Branch
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+
+jobs:
+  reset-develop:
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'develop'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Recreate develop branch from master
+        run: |
+          # Check if develop branch still exists, delete if so
+          if git ls-remote --exit-code --heads origin develop > /dev/null 2>&1; then
+            echo "Develop branch still exists, deleting..."
+            git push origin --delete develop
+          else
+            echo "Develop branch already deleted by GitHub"
+          fi
+
+          # Create and push new develop branch from master
+          git checkout master
+          git checkout -b develop
+          git push origin develop
