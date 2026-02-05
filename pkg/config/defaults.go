@@ -39,10 +39,23 @@ func GetDefaultConfig() *Config {
 			},
 			Prompt: `Based on the following git diff, generate a commit message in Conventional Commits format.
 
-Format: <type>(<scope>): <description>
+Format:
+<type>(<scope>): <short description>
+
+- <bullet point describing a specific change>
+- <bullet point describing another change>
 
 Types: {{.Types}}
-Scope: The module/component affected (e.g., Core, Authentication, API, etc.)
+Scope: The module/component affected in PascalCase (e.g., CI, API, Auth, Core)
+
+Rules:
+- First line: type(Scope): Capitalized short description
+- Blank line after the first line
+- IMPORTANT: Use MINIMAL bullet points. One bullet per distinct change.
+- Single file change = 1-3 bullets MAX
+- Never repeat information from the first line
+- Never add filler bullets like "Add necessary configurations" or "Update file structure"
+- Each bullet must describe a UNIQUE, SPECIFIC change
 
 Changed files:
 {{.Files}}
@@ -50,7 +63,7 @@ Changed files:
 Git diff:
 {{.Diff}}
 
-Generate ONLY the commit message in the format specified, nothing else. Be concise and specific.`,
+Generate ONLY the commit message, nothing else. Be concise and specific.`,
 		},
 	}
 }
