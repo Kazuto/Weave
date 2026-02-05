@@ -5,11 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/Kazuto/Weave/pkg/branch"
 	"github.com/Kazuto/Weave/pkg/commit"
 	"github.com/Kazuto/Weave/pkg/config"
+	"github.com/Kazuto/Weave/pkg/spinner"
 	"github.com/Kazuto/Weave/pkg/version"
 )
 
@@ -53,7 +56,7 @@ Run 'weave <command> --help' for more information on a command.`)
 func runCommit(args []string) {
 	fs := flag.NewFlagSet("commit", flag.ExitOnError)
 	staged := fs.Bool("staged", true, "Use staged changes (default: true)")
-	execute := fs.Bool("execute", false, "Execute the commit after generating message")
+	autoCommit := fs.Bool("y", false, "Automatically commit without prompting")
 	_ = fs.Parse(args) // ExitOnError handles errors
 
 	if !commit.IsGitAvailable() {
@@ -72,6 +75,29 @@ func runCommit(args []string) {
 		os.Exit(1)
 	}
 
+	generator := commit.NewGenerator(cfg.Commit)
+
+	// Check Ollama connection
+	spin := spinner.New("Checking Ollama connection")
+	spin.Start()
+	connOk := generator.CheckConnection()
+	spin.Stop(connOk)
+	if !connOk {
+		fmt.Fprintf(os.Stderr, "   Cannot connect to Ollama at %s\n", cfg.Commit.Ollama.Host)
+		os.Exit(1)
+	}
+
+	// Check model availability
+	spin = spinner.New(fmt.Sprintf("Checking if model '%s' is available", cfg.Commit.Ollama.Model))
+	spin.Start()
+	modelOk := generator.CheckModel()
+	spin.Stop(modelOk)
+	if !modelOk {
+		fmt.Fprintf(os.Stderr, "   Model '%s' is not available\n", cfg.Commit.Ollama.Model)
+		os.Exit(1)
+	}
+
+	// Analyze changes
 	diff, err := commit.GetDiff(*staged)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting diff: %v\n", err)
@@ -93,30 +119,66 @@ func runCommit(args []string) {
 		os.Exit(1)
 	}
 
-	generator := commit.NewGenerator(cfg.Commit)
-	if err := generator.CheckOllama(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
+	fmt.Printf("📝 Found changes in %d file(s)\n", len(files))
 
-	fmt.Println("Generating commit message...")
+	// Generate commit message
+	spin = spinner.New(fmt.Sprintf("Generating commit message using %s", cfg.Commit.Ollama.Model))
+	spin.Start()
 	message, err := generator.Generate(diff, files)
+	spin.Stop(err == nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error generating commit message: %v\n", err)
+		fmt.Fprintf(os.Stderr, "   %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("\nGenerated commit message:\n%s\n\n", message)
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("Generated commit message:")
+	fmt.Println(strings.Repeat("=", 60))
+	fmt.Println(message)
+	fmt.Println(strings.Repeat("=", 60) + "\n")
 
-	if *execute {
+	if *autoCommit {
 		if err := commit.Commit(message); err != nil {
-			fmt.Fprintf(os.Stderr, "Error committing: %v\n", err)
+			fmt.Fprintf(os.Stderr, "❌ Error committing: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println("Commit created successfully!")
-	} else {
-		fmt.Println("Run with --execute to create the commit, or copy the message above.")
+		fmt.Println("✅ Committed successfully!")
+		return
 	}
+
+	fmt.Print("Use this commit message? [y/N]: ")
+	reader := bufio.NewReader(os.Stdin)
+	response, _ := reader.ReadString('\n')
+	response = strings.TrimSpace(strings.ToLower(response))
+
+	if response == "y" || response == "yes" {
+		if err := commit.Commit(message); err != nil {
+			fmt.Fprintf(os.Stderr, "❌ Error committing: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("✅ Committed successfully!")
+	} else {
+		if err := copyToClipboard(message); err != nil {
+			fmt.Println("Commit cancelled. Message not copied to clipboard.")
+		} else {
+			fmt.Println("📋 Commit message copied to clipboard")
+		}
+	}
+}
+
+func copyToClipboard(text string) error {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("pbcopy")
+	case "linux":
+		cmd = exec.Command("xclip", "-selection", "clipboard")
+	default:
+		return fmt.Errorf("unsupported platform")
+	}
+
+	cmd.Stdin = strings.NewReader(text)
+	return cmd.Run()
 }
 
 func runBranch(args []string) {
