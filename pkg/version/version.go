@@ -1,3 +1,6 @@
 package version
 
-const Version = "v0.1.0"
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+)

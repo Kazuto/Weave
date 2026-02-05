@@ -1,0 +1,186 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master]
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.21", "1.22", "1.23"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: make test
+
+      - name: Run tests with race detection
+        run: make test-race
+
+      - name: Generate coverage report
+        run: make test-coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for git describe
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+
+      - name: Build for all platforms
+        run: make build-all
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [test, lint, build]
+    if: github.event_name == 'release'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+
+      - name: Create release archives
+        run: |
+          # Ensure we have the binaries
+          ls -la dist/
+
+          # Create archives directory
+          mkdir -p dist/archives
+
+          # Get version
+          VERSION=$(git describe --tags --always --dirty)
+          echo "Creating archives for version: $VERSION"
+
+          # Change to dist directory and create archives
+          cd dist
+
+          # Create tar.gz for Unix systems
+          if [ -f "weave-linux-amd64" ]; then
+            tar -czf archives/weave-${VERSION}-linux-amd64.tar.gz weave-linux-amd64
+          fi
+
+          if [ -f "weave-linux-arm64" ]; then
+            tar -czf archives/weave-${VERSION}-linux-arm64.tar.gz weave-linux-arm64
+          fi
+
+          if [ -f "weave-darwin-amd64" ]; then
+            tar -czf archives/weave-${VERSION}-darwin-amd64.tar.gz weave-darwin-amd64
+          fi
+
+          if [ -f "weave-darwin-arm64" ]; then
+            tar -czf archives/weave-${VERSION}-darwin-arm64.tar.gz weave-darwin-arm64
+          fi
+
+          # Create zip for Windows
+          if [ -f "weave-windows-amd64.exe" ]; then
+            zip archives/weave-${VERSION}-windows-amd64.zip weave-windows-amd64.exe
+          fi
+
+          echo "Release archives created in dist/archives/"
+          ls -la archives/
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/archives/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: ./...
+
