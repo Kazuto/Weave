@@ -31,6 +31,14 @@ func (g *Generator) CheckOllama() error {
 	return nil
 }
 
+func (g *Generator) CheckConnection() bool {
+	return g.ollama.CheckConnection()
+}
+
+func (g *Generator) CheckModel() bool {
+	return g.ollama.IsModelAvailable()
+}
+
 func (g *Generator) Generate(diff string, files []string) (string, error) {
 	if len(diff) > g.config.Ollama.MaxDiff {
 		diff = diff[:g.config.Ollama.MaxDiff]
