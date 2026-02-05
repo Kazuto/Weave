@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Kazuto/Weave/internal/config"
+	"github.com/Kazuto/Weave/pkg/config"
 )
 
 func TestGenerator_buildPrompt(t *testing.T) {

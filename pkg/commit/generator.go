@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Kazuto/Weave/internal/config"
+	"github.com/Kazuto/Weave/pkg/config"
 )
 
 type Generator struct {

@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Kazuto/Weave/internal/branch"
-	"github.com/Kazuto/Weave/internal/commit"
-	"github.com/Kazuto/Weave/internal/config"
-	"github.com/Kazuto/Weave/internal/version"
+	"github.com/Kazuto/Weave/pkg/branch"
+	"github.com/Kazuto/Weave/pkg/commit"
+	"github.com/Kazuto/Weave/pkg/config"
+	"github.com/Kazuto/Weave/pkg/version"
 )
 
 func main() {

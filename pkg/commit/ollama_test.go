@@ -3,7 +3,7 @@ package commit
 import (
 	"testing"
 
-	"github.com/Kazuto/Weave/internal/config"
+	"github.com/Kazuto/Weave/pkg/config"
 )
 
 func TestNewOllamaClient(t *testing.T) {

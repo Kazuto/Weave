@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kazuto/Weave/internal/config"
+	"github.com/Kazuto/Weave/pkg/config"
 )
 
 type OllamaClient struct {

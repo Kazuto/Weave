@@ -3,7 +3,7 @@ package branch
 import (
 	"testing"
 
-	"github.com/Kazuto/Weave/internal/config"
+	"github.com/Kazuto/Weave/pkg/config"
 )
 
 func testBranchConfig() config.BranchConfig {
