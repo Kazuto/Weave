@@ -47,7 +47,7 @@ func (c *OllamaClient) CheckConnection() bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return resp.StatusCode == http.StatusOK
 }
 
@@ -57,7 +57,7 @@ func (c *OllamaClient) IsModelAvailable() bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var tagsResp ollamaTagsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tagsResp); err != nil {
@@ -96,7 +96,7 @@ func (c *OllamaClient) Generate(prompt string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to call Ollama API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

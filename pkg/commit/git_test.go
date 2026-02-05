@@ -28,7 +28,7 @@ func TestIsGitRepository_NotARepo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(originalDir)
+	defer func() { _ = os.Chdir(originalDir) }()
 
 	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("failed to change to temp directory: %v", err)
@@ -46,7 +46,7 @@ func TestGetDiff_EmptyRepo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(originalDir)
+	defer func() { _ = os.Chdir(originalDir) }()
 
 	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("failed to change to temp directory: %v", err)
@@ -58,8 +58,8 @@ func TestGetDiff_EmptyRepo(t *testing.T) {
 	}
 
 	// Configure git user for commits
-	exec.Command("git", "config", "user.email", "test@test.com").Run()
-	exec.Command("git", "config", "user.name", "Test").Run()
+	_ = exec.Command("git", "config", "user.email", "test@test.com").Run()
+	_ = exec.Command("git", "config", "user.name", "Test").Run()
 
 	// No changes, should return empty diff
 	diff, err := GetDiff(true)
@@ -79,7 +79,7 @@ func TestGetChangedFiles_WithChanges(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current directory: %v", err)
 	}
-	defer os.Chdir(originalDir)
+	defer func() { _ = os.Chdir(originalDir) }()
 
 	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("failed to change to temp directory: %v", err)
@@ -91,22 +91,22 @@ func TestGetChangedFiles_WithChanges(t *testing.T) {
 	}
 
 	// Configure git user
-	exec.Command("git", "config", "user.email", "test@test.com").Run()
-	exec.Command("git", "config", "user.name", "Test").Run()
+	_ = exec.Command("git", "config", "user.email", "test@test.com").Run()
+	_ = exec.Command("git", "config", "user.name", "Test").Run()
 
 	// Create and commit a file
 	testFile := filepath.Join(tempDir, "test.txt")
 	if err := os.WriteFile(testFile, []byte("initial"), 0644); err != nil {
 		t.Fatalf("failed to write test file: %v", err)
 	}
-	exec.Command("git", "add", "test.txt").Run()
-	exec.Command("git", "commit", "-m", "initial").Run()
+	_ = exec.Command("git", "add", "test.txt").Run()
+	_ = exec.Command("git", "commit", "-m", "initial").Run()
 
 	// Modify the file and stage it
 	if err := os.WriteFile(testFile, []byte("modified"), 0644); err != nil {
 		t.Fatalf("failed to modify test file: %v", err)
 	}
-	exec.Command("git", "add", "test.txt").Run()
+	_ = exec.Command("git", "add", "test.txt").Run()
 
 	files, err := GetChangedFiles(true)
 	if err != nil {

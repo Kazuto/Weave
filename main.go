@@ -54,7 +54,7 @@ func runCommit(args []string) {
 	fs := flag.NewFlagSet("commit", flag.ExitOnError)
 	staged := fs.Bool("staged", true, "Use staged changes (default: true)")
 	execute := fs.Bool("execute", false, "Execute the commit after generating message")
-	fs.Parse(args)
+	_ = fs.Parse(args) // ExitOnError handles errors
 
 	if !commit.IsGitAvailable() {
 		fmt.Fprintln(os.Stderr, "Error: git is not installed or not in PATH")
@@ -123,7 +123,7 @@ func runBranch(args []string) {
 	fs := flag.NewFlagSet("branch", flag.ExitOnError)
 	branchType := fs.String("type", "", "Branch type (feature, hotfix, refactor, support)")
 	title := fs.String("title", "", "Custom title (skips Jira lookup)")
-	fs.Parse(args)
+	_ = fs.Parse(args) // ExitOnError handles errors
 
 	if !commit.IsGitAvailable() {
 		fmt.Fprintln(os.Stderr, "Error: git is not installed or not in PATH")
@@ -149,7 +149,7 @@ func runBranch(args []string) {
 		os.Exit(1)
 	}
 
-	selectedType := cfg.Branch.DefaultType
+	var selectedType string
 	if *branchType != "" {
 		selectedType = *branchType
 	} else {

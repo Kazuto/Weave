@@ -250,9 +250,9 @@ func TestGetConfigPath_XDGConfigHome(t *testing.T) {
 	tempDir := t.TempDir()
 
 	originalXDG := os.Getenv("XDG_CONFIG_HOME")
-	defer os.Setenv("XDG_CONFIG_HOME", originalXDG)
+	defer func() { _ = os.Setenv("XDG_CONFIG_HOME", originalXDG) }()
 
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
+	_ = os.Setenv("XDG_CONFIG_HOME", tempDir)
 
 	path := getConfigPath()
 
@@ -264,9 +264,9 @@ func TestGetConfigPath_XDGConfigHome(t *testing.T) {
 
 func TestGetConfigPath_FallbackToHome(t *testing.T) {
 	originalXDG := os.Getenv("XDG_CONFIG_HOME")
-	defer os.Setenv("XDG_CONFIG_HOME", originalXDG)
+	defer func() { _ = os.Setenv("XDG_CONFIG_HOME", originalXDG) }()
 
-	os.Unsetenv("XDG_CONFIG_HOME")
+	_ = os.Unsetenv("XDG_CONFIG_HOME")
 
 	path := getConfigPath()
 
