@@ -12,6 +12,7 @@ import (
 	"github.com/Kazuto/Weave/pkg/branch"
 	"github.com/Kazuto/Weave/pkg/commit"
 	"github.com/Kazuto/Weave/pkg/config"
+	"github.com/Kazuto/Weave/pkg/pr"
 	"github.com/Kazuto/Weave/pkg/spinner"
 	"github.com/Kazuto/Weave/pkg/version"
 )
@@ -27,6 +28,8 @@ func main() {
 		runCommit(os.Args[2:])
 	case "branch":
 		runBranch(os.Args[2:])
+	case "pr":
+		runPR(os.Args[2:])
 	case "version", "-v", "--version":
 		fmt.Printf("weave %s\n", version.Version)
 	case "help", "-h", "--help":
@@ -47,6 +50,7 @@ Usage:
 Commands:
   commit      Generate an AI-powered commit message using Ollama
   branch      Generate a branch name from a Jira ticket
+  pr          Generate an AI-powered pull request description
   version     Show version information
   help        Show this help message
 
@@ -253,6 +257,154 @@ func runBranch(args []string) {
 
 	fmt.Printf("Generated branch name:\n%s\n\n", branchName)
 	fmt.Printf("Create branch with:\n  git checkout -b %s\n", branchName)
+}
+
+func runPR(args []string) {
+	fs := flag.NewFlagSet("pr", flag.ExitOnError)
+	base := fs.String("base", "", "Base branch to compare against (default: auto-detect)")
+	autoCopy := fs.Bool("y", false, "Automatically copy to clipboard without prompting")
+	_ = fs.Parse(args) // ExitOnError handles errors
+
+	if !commit.IsGitAvailable() {
+		fmt.Fprintln(os.Stderr, "Error: git is not installed or not in PATH")
+		os.Exit(1)
+	}
+
+	if !commit.IsGitRepository() {
+		fmt.Fprintln(os.Stderr, "Error: not a git repository")
+		os.Exit(1)
+	}
+
+	cfg, err := loadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	generator := pr.NewGenerator(cfg.PR, cfg.Commit.Ollama)
+
+	// Check Ollama connection
+	spin := spinner.New("Checking Ollama connection")
+	spin.Start()
+	connOk := generator.CheckConnection()
+	spin.Stop(connOk)
+	if !connOk {
+		fmt.Fprintf(os.Stderr, "   Cannot connect to Ollama at %s\n", cfg.Commit.Ollama.Host)
+		os.Exit(1)
+	}
+
+	// Check model availability
+	spin = spinner.New(fmt.Sprintf("Checking if model '%s' is available", cfg.Commit.Ollama.Model))
+	spin.Start()
+	modelOk := generator.CheckModel()
+	spin.Stop(modelOk)
+	if !modelOk {
+		fmt.Fprintf(os.Stderr, "   Model '%s' is not available\n", cfg.Commit.Ollama.Model)
+		os.Exit(1)
+	}
+
+	// Get current branch
+	currentBranch, err := pr.GetCurrentBranch()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting current branch: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Determine base branch
+	baseBranch := *base
+	if baseBranch == "" {
+		baseBranch = cfg.PR.DefaultBase
+	}
+	if baseBranch == "" {
+		baseBranch = pr.DetectBaseBranch()
+	}
+
+	if currentBranch == baseBranch {
+		fmt.Fprintf(os.Stderr, "Error: current branch '%s' is the same as base branch '%s'\n", currentBranch, baseBranch)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Comparing %s → %s\n", currentBranch, baseBranch)
+
+	// Get commits between branches
+	commits, err := pr.GetCommitsBetween(baseBranch, currentBranch)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting commits: %v\n", err)
+		os.Exit(1)
+	}
+
+	if commits == "" {
+		fmt.Fprintln(os.Stderr, "Error: no commits found between branches. Nothing to describe.")
+		os.Exit(1)
+	}
+
+	// Get diff and changed files
+	diff, err := pr.GetDiffBetween(baseBranch, currentBranch)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting diff: %v\n", err)
+		os.Exit(1)
+	}
+
+	files, err := pr.GetChangedFilesBetween(baseBranch, currentBranch)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting changed files: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("📝 Found %d commit(s) changing %d file(s)\n", len(strings.Split(commits, "\n")), len(files))
+
+	// Find PR template
+	template := pr.FindPRTemplate()
+	if template != "" {
+		fmt.Println("📋 Using PR template from repository")
+	}
+
+	// Generate PR description
+	ctx := pr.PRContext{
+		Branch:   currentBranch,
+		Base:     baseBranch,
+		Commits:  commits,
+		Files:    strings.Join(files, "\n"),
+		Diff:     diff,
+		Template: template,
+	}
+
+	spin = spinner.New(fmt.Sprintf("Generating PR description using %s", cfg.Commit.Ollama.Model))
+	spin.Start()
+	description, err := generator.Generate(ctx)
+	spin.Stop(err == nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "   %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("Generated PR description:")
+	fmt.Println(strings.Repeat("=", 60))
+	fmt.Println(description)
+	fmt.Println(strings.Repeat("=", 60) + "\n")
+
+	if *autoCopy {
+		if err := copyToClipboard(description); err != nil {
+			fmt.Fprintf(os.Stderr, "Error copying to clipboard: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("📋 PR description copied to clipboard!")
+		return
+	}
+
+	fmt.Print("Copy to clipboard? [y/N]: ")
+	reader := bufio.NewReader(os.Stdin)
+	response, _ := reader.ReadString('\n')
+	response = strings.TrimSpace(strings.ToLower(response))
+
+	if response == "y" || response == "yes" {
+		if err := copyToClipboard(description); err != nil {
+			fmt.Fprintf(os.Stderr, "Error copying to clipboard: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("📋 PR description copied to clipboard!")
+	}
 }
 
 func promptBranchType(types map[string]string, defaultType string) string {
