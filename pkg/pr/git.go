@@ -7,17 +7,25 @@ import (
 	"strings"
 )
 
+func isSafeRefChar(c rune) bool {
+	return (c >= 'a' && c <= 'z') ||
+		(c >= 'A' && c <= 'Z') ||
+		(c >= '0' && c <= '9') ||
+		c == '/' || c == '-' || c == '_' || c == '.'
+}
+
 // validateRef checks that a git ref contains only safe characters.
 func validateRef(ref string) error {
 	if ref == "" {
 		return fmt.Errorf("empty git ref")
 	}
+
 	for _, c := range ref {
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-			c == '/' || c == '-' || c == '_' || c == '.') {
-			return fmt.Errorf("invalid character %q in git ref %q", string(c), ref)
+		if !isSafeRefChar(c) {
+			return fmt.Errorf("invalid character %q in git ref %q", c, ref)
 		}
 	}
+
 	return nil
 }
 
