@@ -23,7 +23,7 @@ func FindPRTemplate() string {
 	}
 
 	for _, p := range paths {
-		data, err := os.ReadFile(p)
+		data, err := os.ReadFile(filepath.Clean(p))
 		if err == nil {
 			return strings.TrimSpace(string(data))
 		}
