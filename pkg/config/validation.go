@@ -155,6 +155,22 @@ func ValidateAndFix(config *Config) *ValidationResult {
 		result.Fixed = true
 	}
 
+	// Validate and fix pr.max_diff
+	if config.PR.MaxDiff < 100 || config.PR.MaxDiff > 100000 {
+		result.Warnings = append(result.Warnings,
+			fmt.Sprintf("pr.max_diff %d is out of range (100-100000), using default %d",
+				config.PR.MaxDiff, defaults.PR.MaxDiff))
+		config.PR.MaxDiff = defaults.PR.MaxDiff
+		result.Fixed = true
+	}
+
+	// Validate and fix pr.prompt
+	if config.PR.Prompt == "" {
+		result.Warnings = append(result.Warnings, "pr.prompt is empty, using default")
+		config.PR.Prompt = defaults.PR.Prompt
+		result.Fixed = true
+	}
+
 	return result
 }
 
@@ -240,6 +256,16 @@ func ValidateStrict(config *Config) error {
 	// Validate commit.prompt
 	if config.Commit.Prompt == "" {
 		return fmt.Errorf("commit.prompt cannot be empty")
+	}
+
+	// Validate pr.max_diff
+	if config.PR.MaxDiff < 100 || config.PR.MaxDiff > 100000 {
+		return fmt.Errorf("pr.max_diff must be between 100 and 100000")
+	}
+
+	// Validate pr.prompt
+	if config.PR.Prompt == "" {
+		return fmt.Errorf("pr.prompt cannot be empty")
 	}
 
 	return nil

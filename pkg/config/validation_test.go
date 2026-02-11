@@ -11,6 +11,11 @@ func validCommitConfig() CommitConfig {
 	return GetDefaultConfig().Commit
 }
 
+// validPRConfig returns a valid PR config for testing
+func validPRConfig() PRConfig {
+	return GetDefaultConfig().PR
+}
+
 func TestValidationResult_IsValid(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -95,6 +100,7 @@ func TestValidateAndFix(t *testing.T) {
 					},
 				},
 				Commit: validCommitConfig(),
+				PR:     validPRConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -113,6 +119,7 @@ func TestValidateAndFix(t *testing.T) {
 					},
 				},
 				Commit: validCommitConfig(),
+				PR:     validPRConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -131,6 +138,7 @@ func TestValidateAndFix(t *testing.T) {
 					},
 				},
 				Commit: validCommitConfig(),
+				PR:     validPRConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -149,6 +157,7 @@ func TestValidateAndFix(t *testing.T) {
 					},
 				},
 				Commit: validCommitConfig(),
+				PR:     validPRConfig(),
 			},
 			expectValid:  false,
 			expectFixed:  false,
@@ -166,6 +175,7 @@ func TestValidateAndFix(t *testing.T) {
 					},
 				},
 				Commit: validCommitConfig(),
+				PR:     validPRConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -184,6 +194,7 @@ func TestValidateAndFix(t *testing.T) {
 					},
 				},
 				Commit: validCommitConfig(),
+				PR:     validPRConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -204,6 +215,7 @@ func TestValidateAndFix(t *testing.T) {
 					},
 					Types: []string{"feat", "fix"},
 				},
+				PR: validPRConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -224,6 +236,7 @@ func TestValidateAndFix(t *testing.T) {
 					},
 					Types: []string{"feat", "fix"},
 				},
+				PR: validPRConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -291,6 +304,7 @@ func TestValidateStrict(t *testing.T) {
 					},
 				},
 				Commit: validCommitConfig(),
+				PR:     validPRConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
@@ -309,6 +323,7 @@ func TestValidateStrict(t *testing.T) {
 					},
 				},
 				Commit: validCommitConfig(),
+				PR:     validPRConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
@@ -327,6 +342,7 @@ func TestValidateStrict(t *testing.T) {
 					},
 				},
 				Commit: validCommitConfig(),
+				PR:     validPRConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
@@ -347,6 +363,7 @@ func TestValidateStrict(t *testing.T) {
 					},
 					Types: []string{"feat"},
 				},
+				PR: validPRConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
@@ -367,6 +384,7 @@ func TestValidateStrict(t *testing.T) {
 					},
 					Types: []string{"feat"},
 				},
+				PR: validPRConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
@@ -387,6 +405,7 @@ func TestValidateStrict(t *testing.T) {
 					},
 					Types: []string{},
 				},
+				PR: validPRConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {

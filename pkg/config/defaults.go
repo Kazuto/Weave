@@ -1,5 +1,36 @@
 package config
 
+func getDefaultPRPrompt() string {
+	return `Generate a pull request description for the following changes.
+
+Branch: {{.Branch}} → {{.Base}}
+
+Commits:
+{{.Commits}}
+
+Changed files:
+{{.Files}}
+
+Diff (truncated):
+{{.Diff}}
+
+{{if .Template}}Use the following PR template as a structural guide. Fill in each section based on the actual changes:
+
+{{.Template}}
+{{else}}Format the description as:
+
+## Summary
+A concise overview of what this PR does and why.
+
+## Changes
+- Bullet points describing specific changes
+
+## Test Plan
+- How to verify these changes work correctly
+{{end}}
+Generate ONLY the PR description, nothing else. Be concise and specific.`
+}
+
 func GetDefaultConfig() *Config {
 	return &Config{
 		Branch: BranchConfig{
@@ -64,6 +95,11 @@ Git diff:
 {{.Diff}}
 
 Generate ONLY the commit message, nothing else. Be concise and specific.`,
+		},
+		PR: PRConfig{
+			DefaultBase: "",
+			MaxDiff:     8000,
+			Prompt:      getDefaultPRPrompt(),
 		},
 	}
 }

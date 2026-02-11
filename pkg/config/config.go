@@ -3,6 +3,13 @@ package config
 type Config struct {
 	Branch BranchConfig `yaml:"branch"`
 	Commit CommitConfig `yaml:"commit"`
+	PR     PRConfig     `yaml:"pr"`
+}
+
+type PRConfig struct {
+	DefaultBase string `yaml:"default_base"`
+	MaxDiff     int    `yaml:"max_diff"`
+	Prompt      string `yaml:"prompt"`
 }
 
 type CommitConfig struct {
