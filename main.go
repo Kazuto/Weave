@@ -185,6 +185,19 @@ func copyToClipboard(text string) error {
 	return cmd.Run()
 }
 
+func openInBrowser(url string) error {
+	switch runtime.GOOS {
+	case "darwin":
+		return exec.Command("open", url).Run()
+	case "linux":
+		return exec.Command("xdg-open", url).Run()
+	case "windows":
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Run()
+	default:
+		return fmt.Errorf("unsupported platform")
+	}
+}
+
 func runBranch(args []string) {
 	fs := flag.NewFlagSet("branch", flag.ExitOnError)
 	branchType := fs.String("type", "", "Branch type (feature, hotfix, refactor, support)")
@@ -262,7 +275,7 @@ func runBranch(args []string) {
 func runPR(args []string) {
 	fs := flag.NewFlagSet("pr", flag.ExitOnError)
 	base := fs.String("base", "", "Base branch to compare against (default: auto-detect)")
-	autoCopy := fs.Bool("y", false, "Automatically copy to clipboard without prompting")
+	autoOpen := fs.Bool("y", false, "Automatically open in browser without prompting")
 	_ = fs.Parse(args) // ExitOnError handles errors
 
 	if !commit.IsGitAvailable() {
@@ -384,21 +397,59 @@ func runPR(args []string) {
 	fmt.Println(description)
 	fmt.Println(strings.Repeat("=", 60) + "\n")
 
-	if *autoCopy {
-		if err := copyToClipboard(description); err != nil {
-			fmt.Fprintf(os.Stderr, "Error copying to clipboard: %v\n", err)
-			os.Exit(1)
+	// Determine if we can open in browser
+	canOpenBrowser := false
+	var prURL string
+	remoteURL, err := pr.GetRemoteURL()
+	if err == nil {
+		owner, repo, ok := pr.ParseGitHubRepo(remoteURL)
+		if ok {
+			prURL = pr.BuildGitHubPRURL(owner, repo, baseBranch, currentBranch, description)
+			canOpenBrowser = true
 		}
-		fmt.Println("📋 PR description copied to clipboard!")
+	}
+
+	if *autoOpen {
+		if canOpenBrowser {
+			if err := openInBrowser(prURL); err != nil {
+				fmt.Fprintf(os.Stderr, "Error opening browser: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("Opened PR creation page in browser!")
+		} else {
+			if err := copyToClipboard(description); err != nil {
+				fmt.Fprintf(os.Stderr, "Error copying to clipboard: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("📋 No GitHub remote found. PR description copied to clipboard!")
+		}
 		return
 	}
 
-	fmt.Print("Copy to clipboard? [y/N]: ")
+	// Interactive menu
+	if canOpenBrowser {
+		fmt.Println("  1. Open in browser")
+	}
+	fmt.Println("  2. Copy to clipboard")
+	fmt.Println("  3. Do nothing")
+
+	fmt.Print("\nSelect an option: ")
 	reader := bufio.NewReader(os.Stdin)
 	response, _ := reader.ReadString('\n')
-	response = strings.TrimSpace(strings.ToLower(response))
+	response = strings.TrimSpace(response)
 
-	if response == "y" || response == "yes" {
+	switch response {
+	case "1":
+		if !canOpenBrowser {
+			fmt.Fprintln(os.Stderr, "No GitHub remote found.")
+			break
+		}
+		if err := openInBrowser(prURL); err != nil {
+			fmt.Fprintf(os.Stderr, "Error opening browser: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Opened PR creation page in browser!")
+	case "2":
 		if err := copyToClipboard(description); err != nil {
 			fmt.Fprintf(os.Stderr, "Error copying to clipboard: %v\n", err)
 			os.Exit(1)

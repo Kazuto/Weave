@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -176,6 +177,95 @@ func TestGetChangedFilesBetween(t *testing.T) {
 
 	if len(files) != 2 {
 		t.Errorf("GetChangedFilesBetween() returned %d files, want 2: %v", len(files), files)
+	}
+}
+
+func TestParseGitHubRepo(t *testing.T) {
+	tests := []struct {
+		name      string
+		remoteURL string
+		wantOwner string
+		wantRepo  string
+		wantOk    bool
+	}{
+		{
+			name:      "HTTPS with .git",
+			remoteURL: "https://github.com/Kazuto/Weave.git",
+			wantOwner: "Kazuto",
+			wantRepo:  "Weave",
+			wantOk:    true,
+		},
+		{
+			name:      "HTTPS without .git",
+			remoteURL: "https://github.com/Kazuto/Weave",
+			wantOwner: "Kazuto",
+			wantRepo:  "Weave",
+			wantOk:    true,
+		},
+		{
+			name:      "SSH with .git",
+			remoteURL: "git@github.com:Kazuto/Weave.git",
+			wantOwner: "Kazuto",
+			wantRepo:  "Weave",
+			wantOk:    true,
+		},
+		{
+			name:      "SSH without .git",
+			remoteURL: "git@github.com:Kazuto/Weave",
+			wantOwner: "Kazuto",
+			wantRepo:  "Weave",
+			wantOk:    true,
+		},
+		{
+			name:      "Non-GitHub URL",
+			remoteURL: "https://gitlab.com/user/repo.git",
+			wantOwner: "",
+			wantRepo:  "",
+			wantOk:    false,
+		},
+		{
+			name:      "Invalid URL",
+			remoteURL: "not-a-url",
+			wantOwner: "",
+			wantRepo:  "",
+			wantOk:    false,
+		},
+		{
+			name:      "Empty URL",
+			remoteURL: "",
+			wantOwner: "",
+			wantRepo:  "",
+			wantOk:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			owner, repo, ok := ParseGitHubRepo(tt.remoteURL)
+			if owner != tt.wantOwner {
+				t.Errorf("owner = %q, want %q", owner, tt.wantOwner)
+			}
+			if repo != tt.wantRepo {
+				t.Errorf("repo = %q, want %q", repo, tt.wantRepo)
+			}
+			if ok != tt.wantOk {
+				t.Errorf("ok = %v, want %v", ok, tt.wantOk)
+			}
+		})
+	}
+}
+
+func TestBuildGitHubPRURL(t *testing.T) {
+	url := BuildGitHubPRURL("Kazuto", "Weave", "main", "feature/test", "## Summary\nTest PR")
+
+	if !strings.HasPrefix(url, "https://github.com/Kazuto/Weave/compare/main...feature/test?") {
+		t.Errorf("URL has wrong base: %s", url)
+	}
+	if !strings.Contains(url, "expand=1") {
+		t.Error("URL missing expand=1 parameter")
+	}
+	if !strings.Contains(url, "body=") {
+		t.Error("URL missing body parameter")
 	}
 }
 
