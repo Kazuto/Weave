@@ -1,5 +1,9 @@
 # Weave
 
+[![Test](https://github.com/Kazuto/Weave/actions/workflows/ci.yml/badge.svg)](https://github.com/Kazuto/Weave/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Kazuto/Weave)](https://goreportcard.com/report/github.com/Kazuto/Weave)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A CLI tool that automates Git workflows. Generate AI-powered commit messages using local LLMs and create GitFlow-compliant branch names from Jira tickets.
 
 ## Features
