@@ -8,6 +8,34 @@ import (
 	"testing"
 )
 
+func TestValidateRef(t *testing.T) {
+	tests := []struct {
+		ref     string
+		wantErr bool
+	}{
+		{"main", false},
+		{"feature/my-branch", false},
+		{"release/1.0.0", false},
+		{"HEAD", false},
+		{"my_branch", false},
+		{"", true},
+		{"branch name", true},
+		{"branch;echo", true},
+		{"branch`cmd`", true},
+		{"branch$(cmd)", true},
+		{"branch&cmd", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.ref, func(t *testing.T) {
+			err := validateRef(tt.ref)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateRef(%q) error = %v, wantErr %v", tt.ref, err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func setupGitRepo(t *testing.T) (string, func()) {
 	t.Helper()
 	tempDir := t.TempDir()

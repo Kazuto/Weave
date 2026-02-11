@@ -7,6 +7,20 @@ import (
 	"strings"
 )
 
+// validateRef checks that a git ref contains only safe characters.
+func validateRef(ref string) error {
+	if ref == "" {
+		return fmt.Errorf("empty git ref")
+	}
+	for _, c := range ref {
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+			c == '/' || c == '-' || c == '_' || c == '.') {
+			return fmt.Errorf("invalid character %q in git ref %q", string(c), ref)
+		}
+	}
+	return nil
+}
+
 func GetCurrentBranch() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	output, err := cmd.Output()
@@ -45,7 +59,13 @@ func DetectBaseBranch() string {
 }
 
 func GetCommitsBetween(base, head string) (string, error) {
-	cmd := exec.Command("git", "log", base+".."+head, "--pretty=format:%h %s")
+	if err := validateRef(base); err != nil {
+		return "", err
+	}
+	if err := validateRef(head); err != nil {
+		return "", err
+	}
+	cmd := exec.Command("git", "log", base+".."+head, "--pretty=format:%h %s") // #nosec G204 -- refs are validated above
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -54,7 +74,13 @@ func GetCommitsBetween(base, head string) (string, error) {
 }
 
 func GetDiffBetween(base, head string) (string, error) {
-	cmd := exec.Command("git", "diff", base+"..."+head)
+	if err := validateRef(base); err != nil {
+		return "", err
+	}
+	if err := validateRef(head); err != nil {
+		return "", err
+	}
+	cmd := exec.Command("git", "diff", base+"..."+head) // #nosec G204 -- refs are validated above
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -107,7 +133,13 @@ func BuildGitHubPRURL(owner, repo, base, head, body string) string {
 }
 
 func GetChangedFilesBetween(base, head string) ([]string, error) {
-	cmd := exec.Command("git", "diff", base+"..."+head, "--name-only")
+	if err := validateRef(base); err != nil {
+		return nil, err
+	}
+	if err := validateRef(head); err != nil {
+		return nil, err
+	}
+	cmd := exec.Command("git", "diff", base+"..."+head, "--name-only") // #nosec G204 -- refs are validated above
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
