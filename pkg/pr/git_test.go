@@ -101,7 +101,7 @@ func TestDetectBaseBranch(t *testing.T) {
 	// Create a "main" branch to ensure detection works
 	_ = exec.Command("git", "branch", "-M", "main").Run()
 
-	base := DetectBaseBranch()
+	base := DetectBaseBranch("origin")
 	if base == "" {
 		t.Error("DetectBaseBranch() returned empty string")
 	}
@@ -284,7 +284,7 @@ func TestParseGitHubRepo(t *testing.T) {
 }
 
 func TestBuildGitHubPRURL(t *testing.T) {
-	url := BuildGitHubPRURL("Kazuto", "Weave", "main", "feature/test", "## Summary\nTest PR")
+	url := BuildGitHubPRURL("Kazuto", "Weave", "main", "feature/test", "## Summary\nTest PR", "")
 
 	if !strings.HasPrefix(url, "https://github.com/Kazuto/Weave/compare/main...feature/test?") {
 		t.Errorf("URL has wrong base: %s", url)
@@ -294,6 +294,63 @@ func TestBuildGitHubPRURL(t *testing.T) {
 	}
 	if !strings.Contains(url, "body=") {
 		t.Error("URL missing body parameter")
+	}
+}
+
+func TestBuildGitHubPRURL_CrossFork(t *testing.T) {
+	url := BuildGitHubPRURL("OriginalOwner", "Repo", "main", "feature/test", "body", "ForkUser")
+
+	if !strings.HasPrefix(url, "https://github.com/OriginalOwner/Repo/compare/main...ForkUser:feature/test?") {
+		t.Errorf("URL has wrong cross-fork format: %s", url)
+	}
+	if !strings.Contains(url, "expand=1") {
+		t.Error("URL missing expand=1 parameter")
+	}
+}
+
+func TestGetRemoteURL_NamedRemote(t *testing.T) {
+	_, cleanup := setupGitRepo(t)
+	defer cleanup()
+
+	// Add a named remote
+	_ = exec.Command("git", "remote", "add", "upstream", "https://github.com/OriginalOwner/Repo.git").Run()
+
+	url, err := GetRemoteURL("upstream")
+	if err != nil {
+		t.Fatalf("GetRemoteURL(\"upstream\") error: %v", err)
+	}
+
+	if url != "https://github.com/OriginalOwner/Repo.git" {
+		t.Errorf("GetRemoteURL(\"upstream\") = %q, want %q", url, "https://github.com/OriginalOwner/Repo.git")
+	}
+
+	// Non-existent remote should return error
+	_, err = GetRemoteURL("nonexistent")
+	if err == nil {
+		t.Error("GetRemoteURL(\"nonexistent\") should return error")
+	}
+}
+
+func TestDetectBaseBranch_NamedRemote(t *testing.T) {
+	tempDir, cleanup := setupGitRepo(t)
+	defer cleanup()
+
+	// Create initial commit on main
+	testFile := filepath.Join(tempDir, "test.txt")
+	if err := os.WriteFile(testFile, []byte("init"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+	_ = exec.Command("git", "add", ".").Run()
+	_ = exec.Command("git", "commit", "-m", "init").Run()
+	_ = exec.Command("git", "branch", "-M", "main").Run()
+
+	// Without a valid remote, it should still fall back to detecting main/master
+	base := DetectBaseBranch("upstream")
+	if base == "" {
+		t.Error("DetectBaseBranch(\"upstream\") returned empty string")
+	}
+	if base != "main" {
+		t.Errorf("DetectBaseBranch(\"upstream\") = %q, want %q", base, "main")
 	}
 }
 

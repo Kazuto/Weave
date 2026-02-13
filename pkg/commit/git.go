@@ -54,6 +54,6 @@ func GetChangedFiles(staged bool) ([]string, error) {
 }
 
 func Commit(message string) error {
-	cmd := exec.Command("git", "commit", "-m", message)
+	cmd := exec.Command("git", "commit", "-m", message) // #nosec G204 -- message is passed as a separate argument, not interpreted by shell
 	return cmd.Run()
 }

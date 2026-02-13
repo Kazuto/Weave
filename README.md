@@ -96,6 +96,7 @@ weave commit --staged=false
 ```
 
 **Workflow:**
+
 1. Weave analyzes your staged diff and changed files
 2. Sends the diff to Ollama for commit message generation
 3. Displays the generated message in Conventional Commits format
@@ -138,12 +139,12 @@ weave branch PROJ-123 --title "Add user profile dashboard"
 
 **Supported branch types:**
 
-| Type | Prefix | Purpose |
-|------|--------|---------|
-| `feature` | `feature/` | New features and enhancements |
-| `hotfix` | `hotfix/` | Critical bug fixes for production |
+| Type       | Prefix      | Purpose                                          |
+| ---------- | ----------- | ------------------------------------------------ |
+| `feature`  | `feature/`  | New features and enhancements                    |
+| `hotfix`   | `hotfix/`   | Critical bug fixes for production                |
 | `refactor` | `refactor/` | Code improvements without changing functionality |
-| `support` | `support/` | Maintenance and support tasks |
+| `support`  | `support/`  | Maintenance and support tasks                    |
 
 **Example output:**
 
@@ -165,12 +166,18 @@ weave pr
 
 # Specify base branch
 weave pr --base develop
+weave pr -b develop
+
+# Target a different remote (e.g., upstream for fork-based workflows)
+weave pr --remote upstream
+weave pr -r upstream
 
 # Auto-open in browser without prompting
 weave pr -y
 ```
 
 **Workflow:**
+
 1. Weave compares your current branch against the base branch
 2. Collects commits, changed files, and the diff between branches
 3. If a `PULL_REQUEST_TEMPLATE.md` exists in the repo, uses it as a structural guide
@@ -208,7 +215,7 @@ Add OAuth2 authentication flow with token refresh support.
 Select an option:
 ```
 
-If a GitHub remote is detected, option 1 opens the "New Pull Request" page with the description pre-filled. Otherwise, copy to clipboard is offered as the primary action.
+If a GitHub remote is detected, option 1 opens the "New Pull Request" page with the description pre-filled. For fork-based workflows using `--remote upstream`, Weave automatically constructs cross-fork PR URLs. Otherwise, copy to clipboard is offered as the primary action.
 
 ## Configuration
 
@@ -218,26 +225,26 @@ Weave automatically creates a configuration file at `~/.config/weave/config.yaml
 
 ```yaml
 branch:
-  max_length: 60              # Branch name max length (10-200)
-  default_type: feature       # Default branch type
+  max_length: 60 # Branch name max length (10-200)
+  default_type: feature # Default branch type
   types:
     feature: feature
     hotfix: hotfix
     refactor: refactor
     support: support
   sanitization:
-    separator: "-"            # Replace spaces/special chars
-    lowercase: true           # Convert to lowercase
-    remove_umlauts: false     # Remove German umlauts
+    separator: "-" # Replace spaces/special chars
+    lowercase: true # Convert to lowercase
+    remove_umlauts: false # Remove German umlauts
 
 commit:
   ollama:
-    model: llama3.2           # Ollama model to use
+    model: llama3.2 # Ollama model to use
     host: http://localhost:11434
-    temperature: 0.3          # Generation temperature (0-2)
-    top_p: 0.9                # Top-p sampling (0-1)
-    max_diff: 4000            # Max diff characters to send
-  types:                      # Conventional commit types
+    temperature: 0.3 # Generation temperature (0-2)
+    top_p: 0.9 # Top-p sampling (0-1)
+    max_diff: 4000 # Max diff characters to send
+  types: # Conventional commit types
     - feat
     - fix
     - docs
@@ -248,13 +255,14 @@ commit:
     - chore
     - ci
     - build
-  prompt: |                   # Custom prompt template
+  prompt: | # Custom prompt template
     ...                       # Supports {{.Types}}, {{.Files}}, {{.Diff}}
 
 pr:
-  default_base: ""            # Base branch (empty = auto-detect main/master)
-  max_diff: 8000              # Max diff characters to send (100-100000)
-  prompt: |                   # Custom prompt template
+  default_base: "" # Base branch (empty = auto-detect main/master)
+  default_remote: "" # Target remote (empty = origin)
+  max_diff: 8000 # Max diff characters to send (100-100000)
+  prompt: | # Custom prompt template
     ...                       # Supports {{.Branch}}, {{.Base}}, {{.Commits}},
                               # {{.Files}}, {{.Diff}}, {{.Template}}
 ```

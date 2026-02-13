@@ -97,9 +97,10 @@ Git diff:
 Generate ONLY the commit message, nothing else. Be concise and specific.`,
 		},
 		PR: PRConfig{
-			DefaultBase: "",
-			MaxDiff:     8000,
-			Prompt:      getDefaultPRPrompt(),
+			DefaultBase:   "",
+			DefaultRemote: "",
+			MaxDiff:       8000,
+			Prompt:        getDefaultPRPrompt(),
 		},
 	}
 }

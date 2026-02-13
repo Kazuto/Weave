@@ -7,11 +7,20 @@ import (
 	"strings"
 )
 
-func isSafeRefChar(c rune) bool {
-	return (c >= 'a' && c <= 'z') ||
+func isSafeChar(c rune, extra string) bool {
+	if (c >= 'a' && c <= 'z') ||
 		(c >= 'A' && c <= 'Z') ||
-		(c >= '0' && c <= '9') ||
-		c == '/' || c == '-' || c == '_' || c == '.'
+		(c >= '0' && c <= '9') {
+		return true
+	}
+
+	for _, e := range extra {
+		if c == e {
+			return true
+		}
+	}
+
+	return false
 }
 
 // validateRef checks that a git ref contains only safe characters.
@@ -21,8 +30,23 @@ func validateRef(ref string) error {
 	}
 
 	for _, c := range ref {
-		if !isSafeRefChar(c) {
+		if !isSafeChar(c, "/-_.") {
 			return fmt.Errorf("invalid character %q in git ref %q", c, ref)
+		}
+	}
+
+	return nil
+}
+
+// validateRemoteName checks that a git remote name contains only safe characters (no slashes).
+func validateRemoteName(name string) error {
+	if name == "" {
+		return fmt.Errorf("empty remote name")
+	}
+
+	for _, c := range name {
+		if !isSafeChar(c, "-_.") {
+			return fmt.Errorf("invalid character %q in remote name %q", c, name)
 		}
 	}
 
@@ -38,13 +62,17 @@ func GetCurrentBranch() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-func DetectBaseBranch() string {
+func DetectBaseBranch(remote string) string {
+	if err := validateRemoteName(remote); err != nil {
+		return "main"
+	}
+
 	// Try symbolic-ref for the default branch
-	cmd := exec.Command("git", "symbolic-ref", "refs/remotes/origin/HEAD")
+	cmd := exec.Command("git", "symbolic-ref", "refs/remotes/"+remote+"/HEAD") // #nosec G204 -- remote is validated above
 	output, err := cmd.Output()
 	if err == nil {
 		ref := strings.TrimSpace(string(output))
-		// refs/remotes/origin/main -> main
+		// refs/remotes/<remote>/main -> main
 		parts := strings.Split(ref, "/")
 		if len(parts) > 0 {
 			return parts[len(parts)-1]
@@ -96,12 +124,16 @@ func GetDiffBetween(base, head string) (string, error) {
 	return string(output), nil
 }
 
-// GetRemoteURL returns the URL of the "origin" remote.
-func GetRemoteURL() (string, error) {
-	cmd := exec.Command("git", "remote", "get-url", "origin")
+// GetRemoteURL returns the URL of the specified remote.
+func GetRemoteURL(remote string) (string, error) {
+	if err := validateRemoteName(remote); err != nil {
+		return "", err
+	}
+
+	cmd := exec.Command("git", "remote", "get-url", remote) // #nosec G204 -- remote is validated above
 	output, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("no origin remote configured")
+		return "", fmt.Errorf("no %s remote configured", remote)
 	}
 	return strings.TrimSpace(string(output)), nil
 }
@@ -132,8 +164,13 @@ func ParseGitHubRepo(remoteURL string) (owner, repo string, ok bool) {
 }
 
 // BuildGitHubPRURL constructs a GitHub "New Pull Request" URL with the description pre-filled.
-func BuildGitHubPRURL(owner, repo, base, head, body string) string {
-	u := fmt.Sprintf("https://github.com/%s/%s/compare/%s...%s", owner, repo, base, head)
+// When headOwner is non-empty, it uses the cross-fork syntax {base}...{headOwner}:{head}.
+func BuildGitHubPRURL(owner, repo, base, head, body, headOwner string) string {
+	headRef := head
+	if headOwner != "" {
+		headRef = headOwner + ":" + head
+	}
+	u := fmt.Sprintf("https://github.com/%s/%s/compare/%s...%s", owner, repo, base, headRef)
 	params := url.Values{}
 	params.Set("expand", "1")
 	params.Set("body", body)
