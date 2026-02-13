@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"net/url"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -35,7 +36,7 @@ func main() {
 	case "help", "-h", "--help":
 		printUsage()
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "Unknown command: %q\n\n", os.Args[1]) // #nosec G705 -- CLI stderr output, not web response
 		printUsage()
 		os.Exit(1)
 	}
@@ -185,14 +186,19 @@ func copyToClipboard(text string) error {
 	return cmd.Run()
 }
 
-func openInBrowser(url string) error {
+func openInBrowser(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") {
+		return fmt.Errorf("invalid URL: %q", rawURL)
+	}
+
 	switch runtime.GOOS {
 	case "darwin":
-		return exec.Command("open", url).Run()
+		return exec.Command("open", parsed.String()).Run() // #nosec G204 -- URL is validated above
 	case "linux":
-		return exec.Command("xdg-open", url).Run()
+		return exec.Command("xdg-open", parsed.String()).Run() // #nosec G204 -- URL is validated above
 	case "windows":
-		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Run()
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", parsed.String()).Run() // #nosec G204 -- URL is validated above
 	default:
 		return fmt.Errorf("unsupported platform")
 	}
@@ -275,6 +281,9 @@ func runBranch(args []string) {
 func runPR(args []string) {
 	fs := flag.NewFlagSet("pr", flag.ExitOnError)
 	base := fs.String("base", "", "Base branch to compare against (default: auto-detect)")
+	fs.StringVar(base, "b", "", "Base branch (shorthand)")
+	remote := fs.String("remote", "", "Target remote for PR (default: origin)")
+	fs.StringVar(remote, "r", "", "Target remote (shorthand)")
 	autoOpen := fs.Bool("y", false, "Automatically open in browser without prompting")
 	_ = fs.Parse(args) // ExitOnError handles errors
 
@@ -323,13 +332,22 @@ func runPR(args []string) {
 		os.Exit(1)
 	}
 
+	// Determine target remote
+	targetRemote := *remote
+	if targetRemote == "" {
+		targetRemote = cfg.PR.DefaultRemote
+	}
+	if targetRemote == "" {
+		targetRemote = "origin"
+	}
+
 	// Determine base branch
 	baseBranch := *base
 	if baseBranch == "" {
 		baseBranch = cfg.PR.DefaultBase
 	}
 	if baseBranch == "" {
-		baseBranch = pr.DetectBaseBranch()
+		baseBranch = pr.DetectBaseBranch(targetRemote)
 	}
 
 	if currentBranch == baseBranch {
@@ -400,11 +418,22 @@ func runPR(args []string) {
 	// Determine if we can open in browser
 	canOpenBrowser := false
 	var prURL string
-	remoteURL, err := pr.GetRemoteURL()
+	remoteURL, err := pr.GetRemoteURL(targetRemote)
 	if err == nil {
 		owner, repo, ok := pr.ParseGitHubRepo(remoteURL)
 		if ok {
-			prURL = pr.BuildGitHubPRURL(owner, repo, baseBranch, currentBranch, description)
+			// Detect fork owner for cross-fork PRs
+			var headOwner string
+			if targetRemote != "origin" {
+				originURL, originErr := pr.GetRemoteURL("origin")
+				if originErr == nil {
+					forkOwner, _, forkOk := pr.ParseGitHubRepo(originURL)
+					if forkOk {
+						headOwner = forkOwner
+					}
+				}
+			}
+			prURL = pr.BuildGitHubPRURL(owner, repo, baseBranch, currentBranch, description, headOwner)
 			canOpenBrowser = true
 		}
 	}

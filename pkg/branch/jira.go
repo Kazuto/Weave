@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -22,12 +23,18 @@ func (c *JiraClient) IsAvailable() bool {
 	return IsJiraAvailable()
 }
 
+var jiraTicketPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]+-\d+$`)
+
 func (c *JiraClient) GetTicketTitle(ticketID string) (string, error) {
 	if !c.IsAvailable() {
 		return "", fmt.Errorf("jira CLI not found - please install jira CLI or provide title manually")
 	}
 
-	cmd := exec.Command("jira", "issue", "view", ticketID, "--raw")
+	if !jiraTicketPattern.MatchString(ticketID) {
+		return "", fmt.Errorf("invalid ticket ID format: %q", ticketID)
+	}
+
+	cmd := exec.Command("jira", "issue", "view", ticketID, "--raw") // #nosec G204 -- ticketID is validated above
 	output, err := cmd.Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {

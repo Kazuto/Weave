@@ -7,9 +7,10 @@ type Config struct {
 }
 
 type PRConfig struct {
-	DefaultBase string `yaml:"default_base"`
-	MaxDiff     int    `yaml:"max_diff"`
-	Prompt      string `yaml:"prompt"`
+	DefaultBase   string `yaml:"default_base"`
+	DefaultRemote string `yaml:"default_remote"`
+	MaxDiff       int    `yaml:"max_diff"`
+	Prompt        string `yaml:"prompt"`
 }
 
 type CommitConfig struct {
