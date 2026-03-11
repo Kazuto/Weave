@@ -105,19 +105,19 @@ weave commit --staged=false
 **Example output:**
 
 ```
-✅ Checking Ollama connection
-✅ Checking if model 'llama3.2' is available
-📝 Found changes in 3 file(s)
-✅ Generating commit message using llama3.2
+✓ Checking Ollama connection
+✓ Checking if model 'llama3.2' is available
+▸ Found changes in 3 file(s)
+✓ Generating commit message using llama3.2
 
-============================================================
+────────────────────────────────────────────────────────────
 Generated commit message:
-============================================================
+────────────────────────────────────────────────────────────
 feat(Auth): Add OAuth2 login flow
 
 - Implement token refresh middleware
 - Add login/logout API endpoints
-============================================================
+────────────────────────────────────────────────────────────
 
 Use this commit message? [y/N]:
 ```
@@ -135,6 +135,9 @@ weave branch PROJ-123 --type hotfix
 
 # Provide title manually (skips Jira lookup)
 weave branch PROJ-123 --title "Add user profile dashboard"
+
+# Auto-switch branch without prompting
+weave branch PROJ-123 -y
 ```
 
 **Supported branch types:**
@@ -187,14 +190,14 @@ weave pr -y
 **Example output:**
 
 ```
-Comparing feature/add-auth → main
-📝 Found 3 commit(s) changing 5 file(s)
-📋 Using PR template from repository
-✅ Generating PR description using llama3.2
+▸ Comparing feature/add-auth → main
+▸ Found 3 commit(s) changing 5 file(s)
+▸ Using PR template from repository
+✓ Generating PR description using llama3.2
 
-============================================================
+────────────────────────────────────────────────────────────
 Generated PR description:
-============================================================
+────────────────────────────────────────────────────────────
 ## Summary
 Add OAuth2 authentication flow with token refresh support.
 
@@ -206,7 +209,7 @@ Add OAuth2 authentication flow with token refresh support.
 ## Test Plan
 - Verify login flow with valid credentials
 - Test token refresh after expiration
-============================================================
+────────────────────────────────────────────────────────────
 
   1. Open in browser
   2. Copy to clipboard
