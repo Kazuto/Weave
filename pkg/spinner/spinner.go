@@ -43,9 +43,9 @@ func (s *Spinner) Stop(success bool) {
 	close(s.stop)
 	s.done.Wait()
 
-	icon := "✅"
+	icon := "✓"
 	if !success {
-		icon = "❌"
+		icon = "✗"
 	}
 	fmt.Printf("\r%s %s\n", icon, s.message)
 }

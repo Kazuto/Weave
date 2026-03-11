@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"github.com/Kazuto/Weave/pkg/config"
 	"github.com/Kazuto/Weave/pkg/pr"
 	"github.com/Kazuto/Weave/pkg/spinner"
+	"github.com/Kazuto/Weave/pkg/ui"
 	"github.com/Kazuto/Weave/pkg/version"
 )
 
@@ -65,18 +65,18 @@ func runCommit(args []string) {
 	_ = fs.Parse(args) // ExitOnError handles errors
 
 	if !commit.IsGitAvailable() {
-		fmt.Fprintln(os.Stderr, "Error: git is not installed or not in PATH")
+		fmt.Fprintln(os.Stderr, ui.FormatError("Git is not installed or not in PATH"))
 		os.Exit(1)
 	}
 
 	if !commit.IsGitRepository() {
-		fmt.Fprintln(os.Stderr, "Error: not a git repository")
+		fmt.Fprintln(os.Stderr, ui.FormatError("Not a git repository"))
 		os.Exit(1)
 	}
 
 	cfg, err := loadConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error loading config: %v", err)))
 		os.Exit(1)
 	}
 
@@ -88,7 +88,7 @@ func runCommit(args []string) {
 	connOk := generator.CheckConnection()
 	spin.Stop(connOk)
 	if !connOk {
-		fmt.Fprintf(os.Stderr, "   Cannot connect to Ollama at %s\n", cfg.Commit.Ollama.Host)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cannot connect to Ollama at %s", cfg.Commit.Ollama.Host)))
 		os.Exit(1)
 	}
 
@@ -98,33 +98,33 @@ func runCommit(args []string) {
 	modelOk := generator.CheckModel()
 	spin.Stop(modelOk)
 	if !modelOk {
-		fmt.Fprintf(os.Stderr, "   Model '%s' is not available\n", cfg.Commit.Ollama.Model)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Model '%s' is not available", cfg.Commit.Ollama.Model)))
 		os.Exit(1)
 	}
 
 	// Analyze changes
 	diff, err := commit.GetDiff(*staged)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting diff: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error getting diff: %v", err)))
 		os.Exit(1)
 	}
 
 	if diff == "" {
 		if *staged {
-			fmt.Fprintln(os.Stderr, "Error: no staged changes found. Stage changes with 'git add' first.")
+			fmt.Fprintln(os.Stderr, ui.FormatError("No staged changes found. Stage changes with 'git add' first"))
 		} else {
-			fmt.Fprintln(os.Stderr, "Error: no changes found.")
+			fmt.Fprintln(os.Stderr, ui.FormatError("No changes found"))
 		}
 		os.Exit(1)
 	}
 
 	files, err := commit.GetChangedFiles(*staged)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting changed files: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error getting changed files: %v", err)))
 		os.Exit(1)
 	}
 
-	fmt.Printf("📝 Found changes in %d file(s)\n", len(files))
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Found changes in %d file(s)", len(files))))
 
 	// Generate commit message
 	spin = spinner.New(fmt.Sprintf("Generating commit message using %s", cfg.Commit.Ollama.Model))
@@ -132,41 +132,42 @@ func runCommit(args []string) {
 	message, err := generator.Generate(diff, files)
 	spin.Stop(err == nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "   %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
 		os.Exit(1)
 	}
 
-	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("Generated commit message:")
-	fmt.Println(strings.Repeat("=", 60))
+	fmt.Println()
+	fmt.Println(ui.FormatHeader("Generated commit message:"))
+	fmt.Println(strings.Repeat("─", 60))
 	fmt.Println(message)
-	fmt.Println(strings.Repeat("=", 60) + "\n")
+	fmt.Println(strings.Repeat("─", 60) + "\n")
 
 	if *autoCommit {
 		if err := commit.Commit(message); err != nil {
-			fmt.Fprintf(os.Stderr, "❌ Error committing: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error committing: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println("✅ Committed successfully!")
+		fmt.Println(ui.FormatSuccess("Committed successfully!"))
 		return
 	}
 
-	fmt.Print("Use this commit message? [y/N]: ")
-	reader := bufio.NewReader(os.Stdin)
-	response, _ := reader.ReadString('\n')
-	response = strings.TrimSpace(strings.ToLower(response))
+	confirmed, err := ui.Confirm("Use this commit message?", false)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
+		os.Exit(1)
+	}
 
-	if response == "y" || response == "yes" {
+	if confirmed {
 		if err := commit.Commit(message); err != nil {
-			fmt.Fprintf(os.Stderr, "❌ Error committing: %v\n", err)
+			fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error committing: %v", err)))
 			os.Exit(1)
 		}
-		fmt.Println("✅ Committed successfully!")
+		fmt.Println(ui.FormatSuccess("Committed successfully!"))
 	} else {
 		if err := copyToClipboard(message); err != nil {
-			fmt.Println("Commit cancelled. Message not copied to clipboard.")
+			fmt.Println(ui.FormatInfo("Commit cancelled. Message not copied to clipboard"))
 		} else {
-			fmt.Println("📋 Commit message copied to clipboard")
+			fmt.Println(ui.FormatInfo("Commit message copied to clipboard"))
 		}
 	}
 }
@@ -212,26 +213,26 @@ func runBranch(args []string) {
 	_ = fs.Parse(args) // ExitOnError handles errors
 
 	if !commit.IsGitAvailable() {
-		fmt.Fprintln(os.Stderr, "Error: git is not installed or not in PATH")
+		fmt.Fprintln(os.Stderr, ui.FormatError("Git is not installed or not in PATH"))
 		os.Exit(1)
 	}
 
 	if !commit.IsGitRepository() {
-		fmt.Fprintln(os.Stderr, "Error: not a git repository")
+		fmt.Fprintln(os.Stderr, ui.FormatError("Not a git repository"))
 		os.Exit(1)
 	}
 
 	remaining := fs.Args()
 	if len(remaining) < 1 {
-		fmt.Fprintln(os.Stderr, "Error: ticket ID required")
-		fmt.Fprintln(os.Stderr, "\nUsage: weave branch <ticket-id> [--type <type>] [--title <title>]")
+		fmt.Fprintln(os.Stderr, ui.FormatError("Ticket ID required"))
+		fmt.Fprintln(os.Stderr, "Usage: weave branch <ticket-id> [--type <type>] [--title <title>]")
 		os.Exit(1)
 	}
 	ticketID := strings.ToUpper(remaining[0])
 
 	cfg, err := loadConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error loading config: %v", err)))
 		os.Exit(1)
 	}
 
@@ -247,20 +248,20 @@ func runBranch(args []string) {
 		ticketTitle = *title
 	} else {
 		if !branch.IsJiraAvailable() {
-			fmt.Fprintln(os.Stderr, "Error: jira CLI is not installed or not in PATH")
+			fmt.Fprintln(os.Stderr, ui.FormatError("Jira CLI is not installed or not in PATH"))
 			fmt.Fprintln(os.Stderr, "Install it from: https://github.com/ankitpokhrel/jira-cli")
-			fmt.Fprintln(os.Stderr, "\nAlternatively, provide a title with --title flag")
+			fmt.Fprintln(os.Stderr, "Alternatively, provide a title with --title flag")
 			os.Exit(1)
 		}
 
-		fmt.Printf("Fetching ticket %s from Jira...\n", ticketID)
+		fmt.Println(ui.FormatInfo(fmt.Sprintf("Fetching ticket %s from Jira...", ticketID)))
 		jiraClient := branch.NewJiraClient()
 		ticketTitle, err = jiraClient.GetTicketTitle(ticketID)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error fetching ticket: %v\n", err)
+			fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error fetching ticket: %v", err)))
 			os.Exit(1)
 		}
-		fmt.Printf("Title: %s\n\n", ticketTitle)
+		fmt.Printf("\n%s\n\n", ui.FormatInfo(fmt.Sprintf("Title: %s", ticketTitle)))
 	}
 
 	generator := branch.NewGenerator(cfg.Branch)
@@ -271,37 +272,39 @@ func runBranch(args []string) {
 	})
 
 	if err := generator.ValidateName(branchName); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: invalid branch name: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Invalid branch name: %v", err)))
 		os.Exit(1)
 	}
 
-	fmt.Printf("Generated branch name:\n%s\n\n", branchName)
+	fmt.Println(ui.FormatHeader("Generated branch name:"))
+	fmt.Printf("%s\n\n", ui.Style(branchName, "--foreground", "212", "--bold"))
 
 	if *autoCheckout {
 		if err := branch.CheckoutBranch(branchName); err != nil {
-			fmt.Fprintf(os.Stderr, "❌ Error switching to branch: %v\n", err)
+			fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error switching to branch: %v", err)))
 			os.Exit(1)
 		}
-		fmt.Println("✅ Switched to new branch successfully!")
+		fmt.Println(ui.FormatSuccess("Switched to new branch successfully!"))
 		return
 	}
 
-	fmt.Print("Switch to this branch? [y/N]: ")
-	reader := bufio.NewReader(os.Stdin)
-	response, _ := reader.ReadString('\n')
-	response = strings.TrimSpace(strings.ToLower(response))
+	confirmed, err := ui.Confirm("Switch to this branch?", false)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
+		os.Exit(1)
+	}
 
-	if response == "y" || response == "yes" {
+	if confirmed {
 		if err := branch.CheckoutBranch(branchName); err != nil {
-			fmt.Fprintf(os.Stderr, "❌ Error switching to branch: %v\n", err)
+			fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error switching to branch: %v", err)))
 			os.Exit(1)
 		}
-		fmt.Println("✅ Switched to new branch successfully!")
+		fmt.Println(ui.FormatSuccess("Switched to new branch successfully!"))
 	} else {
 		if err := copyToClipboard(branchName); err != nil {
-			fmt.Println("Branch not created. Name not copied to clipboard.")
+			fmt.Println(ui.FormatInfo("Branch not created. Name not copied to clipboard"))
 		} else {
-			fmt.Println("📋 Branch name copied to clipboard")
+			fmt.Println(ui.FormatInfo("Branch name copied to clipboard"))
 		}
 	}
 }
@@ -316,18 +319,18 @@ func runPR(args []string) {
 	_ = fs.Parse(args) // ExitOnError handles errors
 
 	if !commit.IsGitAvailable() {
-		fmt.Fprintln(os.Stderr, "Error: git is not installed or not in PATH")
+		fmt.Fprintln(os.Stderr, ui.FormatError("Git is not installed or not in PATH"))
 		os.Exit(1)
 	}
 
 	if !commit.IsGitRepository() {
-		fmt.Fprintln(os.Stderr, "Error: not a git repository")
+		fmt.Fprintln(os.Stderr, ui.FormatError("Not a git repository"))
 		os.Exit(1)
 	}
 
 	cfg, err := loadConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error loading config: %v", err)))
 		os.Exit(1)
 	}
 
@@ -339,7 +342,7 @@ func runPR(args []string) {
 	connOk := generator.CheckConnection()
 	spin.Stop(connOk)
 	if !connOk {
-		fmt.Fprintf(os.Stderr, "   Cannot connect to Ollama at %s\n", cfg.Commit.Ollama.Host)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cannot connect to Ollama at %s", cfg.Commit.Ollama.Host)))
 		os.Exit(1)
 	}
 
@@ -349,14 +352,14 @@ func runPR(args []string) {
 	modelOk := generator.CheckModel()
 	spin.Stop(modelOk)
 	if !modelOk {
-		fmt.Fprintf(os.Stderr, "   Model '%s' is not available\n", cfg.Commit.Ollama.Model)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Model '%s' is not available", cfg.Commit.Ollama.Model)))
 		os.Exit(1)
 	}
 
 	// Get current branch
 	currentBranch, err := pr.GetCurrentBranch()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting current branch: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error getting current branch: %v", err)))
 		os.Exit(1)
 	}
 
@@ -379,43 +382,43 @@ func runPR(args []string) {
 	}
 
 	if currentBranch == baseBranch {
-		fmt.Fprintf(os.Stderr, "Error: current branch '%s' is the same as base branch '%s'\n", currentBranch, baseBranch)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Current branch '%s' is the same as base branch '%s'", currentBranch, baseBranch)))
 		os.Exit(1)
 	}
 
-	fmt.Printf("Comparing %s → %s\n", currentBranch, baseBranch)
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Comparing %s → %s", currentBranch, baseBranch)))
 
 	// Get commits between branches
 	commits, err := pr.GetCommitsBetween(baseBranch, currentBranch)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting commits: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error getting commits: %v", err)))
 		os.Exit(1)
 	}
 
 	if commits == "" {
-		fmt.Fprintln(os.Stderr, "Error: no commits found between branches. Nothing to describe.")
+		fmt.Fprintln(os.Stderr, ui.FormatError("No commits found between branches. Nothing to describe"))
 		os.Exit(1)
 	}
 
 	// Get diff and changed files
 	diff, err := pr.GetDiffBetween(baseBranch, currentBranch)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting diff: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error getting diff: %v", err)))
 		os.Exit(1)
 	}
 
 	files, err := pr.GetChangedFilesBetween(baseBranch, currentBranch)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting changed files: %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error getting changed files: %v", err)))
 		os.Exit(1)
 	}
 
-	fmt.Printf("📝 Found %d commit(s) changing %d file(s)\n", len(strings.Split(commits, "\n")), len(files))
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Found %d commit(s) changing %d file(s)", len(strings.Split(commits, "\n")), len(files))))
 
 	// Find PR template
 	template := pr.FindPRTemplate()
 	if template != "" {
-		fmt.Println("📋 Using PR template from repository")
+		fmt.Println(ui.FormatInfo("Using PR template from repository"))
 	}
 
 	// Generate PR description
@@ -433,15 +436,15 @@ func runPR(args []string) {
 	description, err := generator.Generate(ctx)
 	spin.Stop(err == nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "   %v\n", err)
+		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
 		os.Exit(1)
 	}
 
-	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("Generated PR description:")
-	fmt.Println(strings.Repeat("=", 60))
+	fmt.Println()
+	fmt.Println(ui.FormatHeader("Generated PR description:"))
+	fmt.Println(strings.Repeat("─", 60))
 	fmt.Println(description)
-	fmt.Println(strings.Repeat("=", 60) + "\n")
+	fmt.Println(strings.Repeat("─", 60) + "\n")
 
 	// Determine if we can open in browser
 	canOpenBrowser := false
@@ -469,90 +472,67 @@ func runPR(args []string) {
 	if *autoOpen {
 		if canOpenBrowser {
 			if err := openInBrowser(prURL); err != nil {
-				fmt.Fprintf(os.Stderr, "Error opening browser: %v\n", err)
+				fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error opening browser: %v", err)))
 				os.Exit(1)
 			}
-			fmt.Println("Opened PR creation page in browser!")
+			fmt.Println(ui.FormatSuccess("Opened PR creation page in browser!"))
 		} else {
 			if err := copyToClipboard(description); err != nil {
-				fmt.Fprintf(os.Stderr, "Error copying to clipboard: %v\n", err)
+				fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error copying to clipboard: %v", err)))
 				os.Exit(1)
 			}
-			fmt.Println("📋 No GitHub remote found. PR description copied to clipboard!")
+			fmt.Println(ui.FormatInfo("No GitHub remote found. PR description copied to clipboard!"))
 		}
 		return
 	}
 
 	// Interactive menu
+	var options []string
 	if canOpenBrowser {
-		fmt.Println("  1. Open in browser")
+		options = []string{"Open in browser", "Copy to clipboard", "Do nothing"}
+	} else {
+		options = []string{"Copy to clipboard", "Do nothing"}
 	}
-	fmt.Println("  2. Copy to clipboard")
-	fmt.Println("  3. Do nothing")
 
-	fmt.Print("\nSelect an option: ")
-	reader := bufio.NewReader(os.Stdin)
-	response, _ := reader.ReadString('\n')
-	response = strings.TrimSpace(response)
+	choice, err := ui.Choose("What would you like to do?", options, "")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
+		os.Exit(1)
+	}
 
-	switch response {
-	case "1":
-		if !canOpenBrowser {
-			fmt.Fprintln(os.Stderr, "No GitHub remote found.")
-			break
-		}
+	switch choice {
+	case "Open in browser":
 		if err := openInBrowser(prURL); err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening browser: %v\n", err)
+			fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error opening browser: %v", err)))
 			os.Exit(1)
 		}
-		fmt.Println("Opened PR creation page in browser!")
-	case "2":
+		fmt.Println(ui.FormatSuccess("Opened PR creation page in browser!"))
+	case "Copy to clipboard":
 		if err := copyToClipboard(description); err != nil {
-			fmt.Fprintf(os.Stderr, "Error copying to clipboard: %v\n", err)
+			fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error copying to clipboard: %v", err)))
 			os.Exit(1)
 		}
-		fmt.Println("📋 PR description copied to clipboard!")
+		fmt.Println(ui.FormatInfo("PR description copied to clipboard!"))
 	}
 }
 
 func promptBranchType(types map[string]string, defaultType string) string {
-	fmt.Println("Select branch type:")
-
 	typeList := make([]string, 0, len(types))
 	for key := range types {
 		typeList = append(typeList, key)
 	}
 
-	for i, t := range typeList {
-		marker := ""
-		if t == defaultType {
-			marker = " (default)"
-		}
-		fmt.Printf("  %d. %s%s\n", i+1, t, marker)
-	}
-
-	fmt.Print("\nEnter number or type name [" + defaultType + "]: ")
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-
-	if input == "" {
+	choice, err := ui.Choose("Select branch type:", typeList, defaultType)
+	if err != nil {
+		fmt.Println(ui.FormatError(fmt.Sprintf("Error selecting branch type, using default: %s", defaultType)))
 		return defaultType
 	}
 
-	var idx int
-	if _, err := fmt.Sscanf(input, "%d", &idx); err == nil {
-		if idx >= 1 && idx <= len(typeList) {
-			return typeList[idx-1]
-		}
+	if choice == "" {
+		return defaultType
 	}
 
-	if _, ok := types[input]; ok {
-		return input
-	}
-
-	fmt.Printf("Invalid selection, using default: %s\n", defaultType)
-	return defaultType
+	return choice
 }
 
 func loadConfig() (*config.Config, error) {
