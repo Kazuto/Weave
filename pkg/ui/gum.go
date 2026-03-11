@@ -84,6 +84,11 @@ func FormatError(text string) string {
 
 // FormatInfo creates an info message
 func FormatInfo(text string) string {
+	return colorize("▸ "+text, colorCyan)
+}
+
+// FormatCyan creates a cyan message without a symbol (for spinners)
+func FormatCyan(text string) string {
 	return colorize(text, colorCyan)
 }
 

@@ -33,7 +33,9 @@ func (s *Spinner) Start() {
 			case <-s.stop:
 				return
 			default:
-				fmt.Printf("\r%s %s", s.frames[i], s.message)
+				// Color both the spinner frame and message in cyan (no symbol while spinning)
+				coloredFrame := "\033[96m" + s.frames[i] + "\033[0m"
+				fmt.Printf("\r%s %s", coloredFrame, ui.FormatCyan(s.message))
 				i = (i + 1) % len(s.frames)
 				time.Sleep(80 * time.Millisecond)
 			}
