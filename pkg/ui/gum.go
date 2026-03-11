@@ -13,7 +13,7 @@ const (
 	colorRed    = "\033[91m"
 	colorGreen  = "\033[92m"
 	colorCyan   = "\033[96m"
-	colorPurple = "\033[95m"
+	colorPurple = "\033[38;5;141m" // 256-color purple
 	colorBold   = "\033[1m"
 )
 
