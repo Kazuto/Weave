@@ -13,7 +13,11 @@ func TestCheckoutBranch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	// Initialize a git repo
 	cmd := exec.Command("git", "init")
@@ -58,7 +62,11 @@ func TestCheckoutBranch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get working directory: %v", err)
 	}
-	defer os.Chdir(oldDir)
+	defer func() {
+		if err := os.Chdir(oldDir); err != nil {
+			t.Logf("Failed to restore working directory: %v", err)
+		}
+	}()
 
 	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatalf("Failed to change to test directory: %v", err)

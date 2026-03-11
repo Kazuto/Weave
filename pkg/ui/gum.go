@@ -200,7 +200,10 @@ func confirmFallback(prompt string, defaultValue bool) (bool, error) {
 	fmt.Printf("%s [%s]: ", prompt, defaultStr)
 
 	var response string
-	fmt.Scanln(&response)
+	_, err := fmt.Scanln(&response)
+	if err != nil && response == "" {
+		return defaultValue, nil
+	}
 	response = strings.TrimSpace(strings.ToLower(response))
 
 	if response == "" {
@@ -226,7 +229,10 @@ func chooseFallback(prompt string, options []string, defaultValue string) (strin
 	fmt.Printf("\nEnter number or name [%s]: ", defaultValue)
 
 	var input string
-	fmt.Scanln(&input)
+	_, err := fmt.Scanln(&input)
+	if err != nil && input == "" {
+		return defaultValue, nil
+	}
 	input = strings.TrimSpace(input)
 
 	if input == "" {
@@ -259,6 +265,9 @@ func inputFallback(prompt string, placeholder string) (string, error) {
 	}
 
 	var input string
-	fmt.Scanln(&input)
+	_, err := fmt.Scanln(&input)
+	if err != nil {
+		return "", err
+	}
 	return strings.TrimSpace(input), nil
 }
