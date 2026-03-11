@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/Kazuto/Weave/pkg/ui"
 )
 
 type Spinner struct {
@@ -31,7 +33,9 @@ func (s *Spinner) Start() {
 			case <-s.stop:
 				return
 			default:
-				fmt.Printf("\r%s %s", s.frames[i], s.message)
+				// Color both the spinner frame and message in cyan (no symbol while spinning)
+				coloredFrame := "\033[96m" + s.frames[i] + "\033[0m"
+				fmt.Printf("\r%s %s", coloredFrame, ui.FormatCyan(s.message))
 				i = (i + 1) % len(s.frames)
 				time.Sleep(80 * time.Millisecond)
 			}
@@ -43,9 +47,9 @@ func (s *Spinner) Stop(success bool) {
 	close(s.stop)
 	s.done.Wait()
 
-	icon := "✅"
-	if !success {
-		icon = "❌"
+	if success {
+		fmt.Printf("\r%s\n", ui.FormatSuccess(s.message))
+	} else {
+		fmt.Printf("\r%s\n", ui.FormatError(s.message))
 	}
-	fmt.Printf("\r%s %s\n", icon, s.message)
 }
