@@ -2,47 +2,89 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
 
+// ANSI color codes
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[91m"
+	colorGreen  = "\033[92m"
+	colorCyan   = "\033[96m"
+	colorPurple = "\033[95m"
+	colorBold   = "\033[1m"
+)
+
+// colorize wraps text in ANSI color codes if output supports it
+func colorize(text, color string) string {
+	if !shouldColorize() {
+		return text
+	}
+	return color + text + colorReset
+}
+
+// shouldColorize checks if we should output colors
+func shouldColorize() bool {
+	// Disable colors if NO_COLOR is set
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+
+	// Force colors if FORCE_COLOR is set
+	if os.Getenv("FORCE_COLOR") != "" || os.Getenv("CLICOLOR_FORCE") != "" {
+		return true
+	}
+
+	// Enable colors for common terminals
+	term := os.Getenv("TERM")
+	if strings.Contains(term, "color") || strings.Contains(term, "xterm") ||
+	   strings.Contains(term, "screen") || strings.Contains(term, "tmux") {
+		return true
+	}
+
+	// Check if stdout or stderr is a terminal
+	return isTerminal(os.Stdout) || isTerminal(os.Stderr)
+}
+
+// isTerminal checks if the given file is a terminal
+func isTerminal(f *os.File) bool {
+	fileInfo, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return (fileInfo.Mode() & os.ModeCharDevice) != 0
+}
+
 // Style applies gum styling to text
 func Style(text string, options ...string) string {
-	if !IsGumAvailable() {
-		return text
+	// For compatibility, keep this function but use colorize internally
+	// This is mainly used by FormatHeader with bold+purple
+	if len(options) >= 2 && options[0] == "--bold" {
+		return colorize(text, colorBold+colorPurple)
 	}
-
-	args := []string{"style"}
-	args = append(args, options...)
-	args = append(args, text)
-
-	cmd := exec.Command("gum", args...)
-	output, err := cmd.Output()
-	if err != nil {
-		return text
-	}
-
-	return strings.TrimSpace(string(output))
+	return text
 }
 
 // FormatHeader creates a styled header
 func FormatHeader(text string) string {
-	return Style(text, "--bold", "--foreground", "212")
+	return colorize(text, colorBold+colorPurple)
 }
 
 // FormatSuccess creates a success message
 func FormatSuccess(text string) string {
-	return Style("✓ "+text, "--foreground", "42")
+	return colorize("✓ "+text, colorGreen)
 }
 
 // FormatError creates an error message
 func FormatError(text string) string {
-	return Style("✗ "+text, "--foreground", "196")
+	return colorize("✗ "+text, colorRed)
 }
 
 // FormatInfo creates an info message
 func FormatInfo(text string) string {
-	return Style(text, "--foreground", "86")
+	return colorize(text, colorCyan)
 }
 
 // Spin executes a command with a gum spinner
