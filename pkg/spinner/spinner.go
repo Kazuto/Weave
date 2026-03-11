@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/Kazuto/Weave/pkg/ui"
 )
 
 type Spinner struct {
@@ -43,9 +45,9 @@ func (s *Spinner) Stop(success bool) {
 	close(s.stop)
 	s.done.Wait()
 
-	icon := "✓"
-	if !success {
-		icon = "✗"
+	if success {
+		fmt.Printf("\r%s\n", ui.FormatSuccess(s.message))
+	} else {
+		fmt.Printf("\r%s\n", ui.FormatError(s.message))
 	}
-	fmt.Printf("\r%s %s\n", icon, s.message)
 }
