@@ -208,6 +208,7 @@ func runBranch(args []string) {
 	fs := flag.NewFlagSet("branch", flag.ExitOnError)
 	branchType := fs.String("type", "", "Branch type (feature, hotfix, refactor, support)")
 	title := fs.String("title", "", "Custom title (skips Jira lookup)")
+	autoCheckout := fs.Bool("y", false, "Automatically switch to the new branch without prompting")
 	_ = fs.Parse(args) // ExitOnError handles errors
 
 	if !commit.IsGitAvailable() {
@@ -275,7 +276,34 @@ func runBranch(args []string) {
 	}
 
 	fmt.Printf("Generated branch name:\n%s\n\n", branchName)
-	fmt.Printf("Create branch with:\n  git checkout -b %s\n", branchName)
+
+	if *autoCheckout {
+		if err := branch.CheckoutBranch(branchName); err != nil {
+			fmt.Fprintf(os.Stderr, "❌ Error switching to branch: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("✅ Switched to new branch successfully!")
+		return
+	}
+
+	fmt.Print("Switch to this branch? [y/N]: ")
+	reader := bufio.NewReader(os.Stdin)
+	response, _ := reader.ReadString('\n')
+	response = strings.TrimSpace(strings.ToLower(response))
+
+	if response == "y" || response == "yes" {
+		if err := branch.CheckoutBranch(branchName); err != nil {
+			fmt.Fprintf(os.Stderr, "❌ Error switching to branch: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("✅ Switched to new branch successfully!")
+	} else {
+		if err := copyToClipboard(branchName); err != nil {
+			fmt.Println("Branch not created. Name not copied to clipboard.")
+		} else {
+			fmt.Println("📋 Branch name copied to clipboard")
+		}
+	}
 }
 
 func runPR(args []string) {
