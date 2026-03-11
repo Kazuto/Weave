@@ -124,7 +124,7 @@ func Confirm(prompt string, defaultValue bool) (bool, error) {
 		args = append(args, "--default=false")
 	}
 
-	cmd := exec.Command("gum", args...)
+	cmd := exec.Command("gum", args...) // #nosec G204 -- args are constructed by our code, not user input
 	err := cmd.Run()
 	if err != nil {
 		// Exit code 1 means "no", other errors are actual errors
