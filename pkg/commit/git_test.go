@@ -189,3 +189,49 @@ func TestGetRecentCommits_Negative(t *testing.T) {
 		t.Errorf("Expected 0 commits, got %d", len(commits))
 	}
 }
+
+func TestGetRecentCommitsFromBranch_InvalidRef(t *testing.T) {
+	if !IsGitRepository() {
+		t.Skip("Not a git repository")
+	}
+
+	// Test with invalid characters (command injection attempt)
+	commits, err := GetRecentCommitsFromBranch(5, "main; echo hacked")
+	if err != nil {
+		t.Errorf("GetRecentCommitsFromBranch() should not error, got %v", err)
+	}
+
+	// Should fallback to recent commits when validation fails
+	if len(commits) > 5 {
+		t.Errorf("Expected at most 5 commits, got %d", len(commits))
+	}
+}
+
+func TestValidateRef(t *testing.T) {
+	tests := []struct {
+		name    string
+		ref     string
+		wantErr bool
+	}{
+		{"valid branch", "main", false},
+		{"valid with slash", "feature/test", false},
+		{"valid with hyphen", "my-branch", false},
+		{"valid with underscore", "my_branch", false},
+		{"valid with dot", "release/1.0.0", false},
+		{"empty ref", "", true},
+		{"command injection semicolon", "main; rm -rf /", true},
+		{"command injection pipe", "main | cat", true},
+		{"command injection ampersand", "main & echo test", true},
+		{"command injection backtick", "main`whoami`", true},
+		{"command injection dollar", "main$(whoami)", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateRef(tt.ref)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateRef(%q) error = %v, wantErr %v", tt.ref, err, tt.wantErr)
+			}
+		})
+	}
+}

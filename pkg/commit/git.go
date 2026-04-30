@@ -1,9 +1,11 @@
 package commit
 
 import (
+	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 func IsGitAvailable() bool {
@@ -59,6 +61,36 @@ func Commit(message string) error {
 	return cmd.Run()
 }
 
+// isSafeChar checks if a character is alphanumeric or in the extra set
+func isSafeChar(c rune, extra string) bool {
+	if unicode.IsLetter(c) || unicode.IsDigit(c) {
+		return true
+	}
+
+	for _, e := range extra {
+		if c == e {
+			return true
+		}
+	}
+
+	return false
+}
+
+// validateRef checks that a git ref contains only safe characters
+func validateRef(ref string) error {
+	if ref == "" {
+		return fmt.Errorf("empty git ref")
+	}
+
+	for _, c := range ref {
+		if !isSafeChar(c, "/-_.") {
+			return fmt.Errorf("invalid character %q in git ref %q", c, ref)
+		}
+	}
+
+	return nil
+}
+
 func GetRecentCommits(count int) ([]string, error) {
 	return GetRecentCommitsFromBranch(count, "")
 }
@@ -75,8 +107,16 @@ func GetRecentCommitsFromBranch(count int, baseBranch string) ([]string, error) 
 
 	var cmd *exec.Cmd
 	if baseBranch != "" {
+		// Validate the base branch to prevent command injection
+		if err := validateRef(baseBranch); err != nil {
+			// If validation fails, fallback to recent commits
+			baseBranch = ""
+		}
+	}
+
+	if baseBranch != "" {
 		// Get commits unique to current branch (not in base branch)
-		cmd = exec.Command("git", "log", baseBranch+".."+"HEAD", "-n", strconv.Itoa(count), "--pretty=format:%s") // #nosec G204 -- count is an integer
+		cmd = exec.Command("git", "log", baseBranch+".."+"HEAD", "-n", strconv.Itoa(count), "--pretty=format:%s") // #nosec G204 -- baseBranch is validated above
 	} else {
 		// Get last n commits from current branch
 		cmd = exec.Command("git", "log", "-n", strconv.Itoa(count), "--pretty=format:%s") // #nosec G204 -- count is an integer
@@ -85,7 +125,7 @@ func GetRecentCommitsFromBranch(count int, baseBranch string) ([]string, error) 
 	output, err := cmd.Output()
 	if err != nil {
 		// If there are no commits yet (new repo) or base branch doesn't exist, fallback to recent commits
-		cmd = exec.Command("git", "log", "-n", strconv.Itoa(count), "--pretty=format:%s")
+		cmd = exec.Command("git", "log", "-n", strconv.Itoa(count), "--pretty=format:%s") // #nosec G204 -- count is an integer
 		output, err = cmd.Output()
 		if err != nil {
 			return []string{}, nil
