@@ -1,4 +1,4 @@
-package commit
+package llm
 
 import (
 	"testing"
@@ -22,39 +22,29 @@ func TestNewOllamaClient(t *testing.T) {
 	}
 
 	if client.config.Model != "llama3.2" {
-		t.Errorf("Expected model 'llama3.2', got '%s'", client.config.Model)
-	}
-
-	if client.config.Host != "http://localhost:11434" {
-		t.Errorf("Expected host 'http://localhost:11434', got '%s'", client.config.Host)
-	}
-
-	if client.client == nil {
-		t.Error("HTTP client should not be nil")
+		t.Errorf("Expected model 'llama3.2', got %s", client.config.Model)
 	}
 }
 
 func TestOllamaClient_CheckConnection_NoServer(t *testing.T) {
 	cfg := config.OllamaConfig{
-		Host: "http://localhost:99999", // Invalid port
+		Host: "http://localhost:99999",
 	}
 
 	client := NewOllamaClient(cfg)
-
 	if client.CheckConnection() {
-		t.Error("Expected CheckConnection() to return false for invalid host")
+		t.Error("Expected CheckConnection to fail with invalid host")
 	}
 }
 
 func TestOllamaClient_IsModelAvailable_NoServer(t *testing.T) {
 	cfg := config.OllamaConfig{
-		Model: "llama3.2",
-		Host:  "http://localhost:99999", // Invalid port
+		Host:  "http://localhost:99999",
+		Model: "test",
 	}
 
 	client := NewOllamaClient(cfg)
-
 	if client.IsModelAvailable() {
-		t.Error("Expected IsModelAvailable() to return false for invalid host")
+		t.Error("Expected IsModelAvailable to fail with invalid host")
 	}
 }

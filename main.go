@@ -80,25 +80,34 @@ func runCommit(args []string) {
 		os.Exit(1)
 	}
 
-	generator := commit.NewGenerator(cfg.Commit)
+	generator, err := commit.NewGenerator(cfg.Commit, cfg.LLM)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error creating generator: %v", err)))
+		os.Exit(1)
+	}
 
-	// Check Ollama connection
-	spin := spinner.New("Checking Ollama connection")
+	providerType := cfg.LLM.Provider
+	if providerType == "" {
+		providerType = "ollama"
+	}
+
+	// Check provider connection
+	spin := spinner.New(fmt.Sprintf("Checking %s connection", providerType))
 	spin.Start()
 	connOk := generator.CheckConnection()
 	spin.Stop(connOk)
 	if !connOk {
-		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cannot connect to Ollama at %s", cfg.Commit.Ollama.Host)))
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cannot connect to %s provider", providerType)))
 		os.Exit(1)
 	}
 
 	// Check model availability
-	spin = spinner.New(fmt.Sprintf("Checking if model '%s' is available", cfg.Commit.Ollama.Model))
+	spin = spinner.New("Checking if model is available")
 	spin.Start()
 	modelOk := generator.CheckModel()
 	spin.Stop(modelOk)
 	if !modelOk {
-		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Model '%s' is not available", cfg.Commit.Ollama.Model)))
+		fmt.Fprintln(os.Stderr, ui.FormatError("Model is not available"))
 		os.Exit(1)
 	}
 
@@ -127,7 +136,11 @@ func runCommit(args []string) {
 	fmt.Println(ui.FormatInfo(fmt.Sprintf("Found changes in %d file(s)", len(files))))
 
 	// Generate commit message
-	spin = spinner.New(fmt.Sprintf("Generating commit message using %s", cfg.Commit.Ollama.Model))
+	modelName := cfg.LLM.Ollama.Model
+	if cfg.LLM.Provider == "openai" {
+		modelName = cfg.LLM.OpenAI.Model
+	}
+	spin = spinner.New(fmt.Sprintf("Generating commit message using %s", modelName))
 	spin.Start()
 	message, err := generator.Generate(diff, files)
 	spin.Stop(err == nil)
@@ -334,25 +347,34 @@ func runPR(args []string) {
 		os.Exit(1)
 	}
 
-	generator := pr.NewGenerator(cfg.PR, cfg.Commit.Ollama)
+	generator, err := pr.NewGenerator(cfg.PR, cfg.LLM)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error creating generator: %v", err)))
+		os.Exit(1)
+	}
 
-	// Check Ollama connection
-	spin := spinner.New("Checking Ollama connection")
+	providerType := cfg.LLM.Provider
+	if providerType == "" {
+		providerType = "ollama"
+	}
+
+	// Check provider connection
+	spin := spinner.New(fmt.Sprintf("Checking %s connection", providerType))
 	spin.Start()
 	connOk := generator.CheckConnection()
 	spin.Stop(connOk)
 	if !connOk {
-		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cannot connect to Ollama at %s", cfg.Commit.Ollama.Host)))
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cannot connect to %s provider", providerType)))
 		os.Exit(1)
 	}
 
 	// Check model availability
-	spin = spinner.New(fmt.Sprintf("Checking if model '%s' is available", cfg.Commit.Ollama.Model))
+	spin = spinner.New("Checking if model is available")
 	spin.Start()
 	modelOk := generator.CheckModel()
 	spin.Stop(modelOk)
 	if !modelOk {
-		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Model '%s' is not available", cfg.Commit.Ollama.Model)))
+		fmt.Fprintln(os.Stderr, ui.FormatError("Model is not available"))
 		os.Exit(1)
 	}
 
@@ -431,7 +453,11 @@ func runPR(args []string) {
 		Template: template,
 	}
 
-	spin = spinner.New(fmt.Sprintf("Generating PR description using %s", cfg.Commit.Ollama.Model))
+	modelName := cfg.LLM.Ollama.Model
+	if cfg.LLM.Provider == "openai" {
+		modelName = cfg.LLM.OpenAI.Model
+	}
+	spin = spinner.New(fmt.Sprintf("Generating PR description using %s", modelName))
 	spin.Start()
 	description, err := generator.Generate(ctx)
 	spin.Stop(err == nil)

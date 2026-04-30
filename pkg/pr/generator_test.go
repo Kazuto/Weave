@@ -12,19 +12,25 @@ func TestNewGenerator(t *testing.T) {
 		MaxDiff: 8000,
 		Prompt:  "test prompt",
 	}
-	ollamaCfg := config.OllamaConfig{
-		Model: "llama3.2",
-		Host:  "http://localhost:11434",
+	llmCfg := config.LLMConfig{
+		Provider: "ollama",
+		Ollama: config.OllamaConfig{
+			Model: "llama3.2",
+			Host:  "http://localhost:11434",
+		},
 	}
 
-	g := NewGenerator(prCfg, ollamaCfg)
+	g, err := NewGenerator(prCfg, llmCfg)
+	if err != nil {
+		t.Fatalf("NewGenerator() error = %v", err)
+	}
 
 	if g == nil {
 		t.Fatal("NewGenerator() returned nil")
 	}
 
-	if g.ollama == nil {
-		t.Error("Generator should have ollama client")
+	if g.provider == nil {
+		t.Error("Generator should have provider")
 	}
 
 	if g.config.MaxDiff != 8000 {
@@ -37,12 +43,18 @@ func TestGenerator_buildPrompt(t *testing.T) {
 		MaxDiff: 8000,
 		Prompt:  "Branch: {{.Branch}} → {{.Base}}\nCommits:\n{{.Commits}}\nFiles:\n{{.Files}}\nDiff:\n{{.Diff}}",
 	}
-	ollamaCfg := config.OllamaConfig{
-		Model: "llama3.2",
-		Host:  "http://localhost:11434",
+	llmCfg := config.LLMConfig{
+		Provider: "ollama",
+		Ollama: config.OllamaConfig{
+			Model: "llama3.2",
+			Host:  "http://localhost:11434",
+		},
 	}
 
-	g := NewGenerator(prCfg, ollamaCfg)
+	g, err := NewGenerator(prCfg, llmCfg)
+	if err != nil {
+		t.Fatalf("NewGenerator() error = %v", err)
+	}
 
 	ctx := PRContext{
 		Branch:  "feature/test",
@@ -77,12 +89,18 @@ func TestGenerator_buildPrompt_WithTemplate(t *testing.T) {
 		MaxDiff: 8000,
 		Prompt:  "{{if .Template}}Use template:\n{{.Template}}{{else}}Default format{{end}}\nBranch: {{.Branch}}",
 	}
-	ollamaCfg := config.OllamaConfig{
-		Model: "llama3.2",
-		Host:  "http://localhost:11434",
+	llmCfg := config.LLMConfig{
+		Provider: "ollama",
+		Ollama: config.OllamaConfig{
+			Model: "llama3.2",
+			Host:  "http://localhost:11434",
+		},
 	}
 
-	g := NewGenerator(prCfg, ollamaCfg)
+	g, err := NewGenerator(prCfg, llmCfg)
+	if err != nil {
+		t.Fatalf("NewGenerator() error = %v", err)
+	}
 
 	t.Run("with template", func(t *testing.T) {
 		ctx := PRContext{

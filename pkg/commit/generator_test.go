@@ -9,6 +9,11 @@ import (
 
 func TestGenerator_buildPrompt(t *testing.T) {
 	cfg := config.CommitConfig{
+		Types:  []string{"feat", "fix", "docs"},
+		Prompt: "Types: {{.Types}}\nFiles: {{.Files}}\nDiff: {{.Diff}}",
+	}
+	llmCfg := config.LLMConfig{
+		Provider: "ollama",
 		Ollama: config.OllamaConfig{
 			Model:       "llama3.2",
 			Host:        "http://localhost:11434",
@@ -16,11 +21,12 @@ func TestGenerator_buildPrompt(t *testing.T) {
 			TopP:        0.9,
 			MaxDiff:     4000,
 		},
-		Types:  []string{"feat", "fix", "docs"},
-		Prompt: "Types: {{.Types}}\nFiles: {{.Files}}\nDiff: {{.Diff}}",
 	}
 
-	g := NewGenerator(cfg)
+	g, err := NewGenerator(cfg, llmCfg)
+	if err != nil {
+		t.Fatalf("NewGenerator() error = %v", err)
+	}
 
 	diff := "diff --git a/file.go"
 	files := []string{"file.go", "other.go"}
@@ -42,11 +48,17 @@ func TestGenerator_buildPrompt(t *testing.T) {
 
 func TestGenerator_cleanResponse(t *testing.T) {
 	cfg := config.CommitConfig{
-		Ollama: config.OllamaConfig{},
-		Types:  []string{},
+		Types: []string{},
+	}
+	llmCfg := config.LLMConfig{
+		Provider: "ollama",
+		Ollama:   config.OllamaConfig{},
 	}
 
-	g := NewGenerator(cfg)
+	g, err := NewGenerator(cfg, llmCfg)
+	if err != nil {
+		t.Fatalf("NewGenerator() error = %v", err)
+	}
 
 	tests := []struct {
 		input    string
@@ -80,6 +92,10 @@ func TestGenerator_cleanResponse(t *testing.T) {
 
 func TestNewGenerator(t *testing.T) {
 	cfg := config.CommitConfig{
+		Types: []string{"feat", "fix"},
+	}
+	llmCfg := config.LLMConfig{
+		Provider: "ollama",
 		Ollama: config.OllamaConfig{
 			Model:       "llama3.2",
 			Host:        "http://localhost:11434",
@@ -87,17 +103,19 @@ func TestNewGenerator(t *testing.T) {
 			TopP:        0.9,
 			MaxDiff:     4000,
 		},
-		Types: []string{"feat", "fix"},
 	}
 
-	g := NewGenerator(cfg)
+	g, err := NewGenerator(cfg, llmCfg)
+	if err != nil {
+		t.Fatalf("NewGenerator() error = %v", err)
+	}
 
 	if g == nil {
 		t.Fatal("NewGenerator() returned nil")
 	}
 
-	if g.ollama == nil {
-		t.Error("Generator should have ollama client")
+	if g.provider == nil {
+		t.Error("Generator should have provider")
 	}
 
 	if len(g.config.Types) != 2 {

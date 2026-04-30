@@ -158,6 +158,7 @@ func TestValidateAndFix(t *testing.T) {
 				},
 				Commit: validCommitConfig(),
 				PR:     validPRConfig(),
+				LLM:    GetDefaultConfig().LLM,
 			},
 			expectValid:  false,
 			expectFixed:  false,
@@ -206,6 +207,11 @@ func TestValidateAndFix(t *testing.T) {
 			config: &Config{
 				Branch: GetDefaultConfig().Branch,
 				Commit: CommitConfig{
+					Types: []string{"feat", "fix"},
+				},
+				PR: validPRConfig(),
+				LLM: LLMConfig{
+					Provider: "ollama",
 					Ollama: OllamaConfig{
 						Model:       "",
 						Host:        "http://localhost:11434",
@@ -213,9 +219,7 @@ func TestValidateAndFix(t *testing.T) {
 						TopP:        0.9,
 						MaxDiff:     4000,
 					},
-					Types: []string{"feat", "fix"},
 				},
-				PR: validPRConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -227,6 +231,11 @@ func TestValidateAndFix(t *testing.T) {
 			config: &Config{
 				Branch: GetDefaultConfig().Branch,
 				Commit: CommitConfig{
+					Types: []string{"feat", "fix"},
+				},
+				PR: validPRConfig(),
+				LLM: LLMConfig{
+					Provider: "ollama",
 					Ollama: OllamaConfig{
 						Model:       "llama3.2",
 						Host:        "http://localhost:11434",
@@ -234,9 +243,7 @@ func TestValidateAndFix(t *testing.T) {
 						TopP:        0.9,
 						MaxDiff:     4000,
 					},
-					Types: []string{"feat", "fix"},
 				},
-				PR: validPRConfig(),
 			},
 			expectValid:    true,
 			expectFixed:    true,
@@ -354,6 +361,11 @@ func TestValidateStrict(t *testing.T) {
 			config: &Config{
 				Branch: GetDefaultConfig().Branch,
 				Commit: CommitConfig{
+					Types: []string{"feat"},
+				},
+				PR: validPRConfig(),
+				LLM: LLMConfig{
+					Provider: "ollama",
 					Ollama: OllamaConfig{
 						Model:       "",
 						Host:        "http://localhost:11434",
@@ -361,13 +373,11 @@ func TestValidateStrict(t *testing.T) {
 						TopP:        0.9,
 						MaxDiff:     4000,
 					},
-					Types: []string{"feat"},
 				},
-				PR: validPRConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
-				return strings.Contains(err.Error(), "commit.ollama.model")
+				return strings.Contains(err.Error(), "llm.ollama.model")
 			},
 		},
 		{
@@ -375,6 +385,11 @@ func TestValidateStrict(t *testing.T) {
 			config: &Config{
 				Branch: GetDefaultConfig().Branch,
 				Commit: CommitConfig{
+					Types: []string{"feat"},
+				},
+				PR: validPRConfig(),
+				LLM: LLMConfig{
+					Provider: "ollama",
 					Ollama: OllamaConfig{
 						Model:       "llama3.2",
 						Host:        "http://localhost:11434",
@@ -382,9 +397,7 @@ func TestValidateStrict(t *testing.T) {
 						TopP:        0.9,
 						MaxDiff:     4000,
 					},
-					Types: []string{"feat"},
 				},
-				PR: validPRConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
@@ -396,6 +409,11 @@ func TestValidateStrict(t *testing.T) {
 			config: &Config{
 				Branch: GetDefaultConfig().Branch,
 				Commit: CommitConfig{
+					Types: []string{},
+				},
+				PR: validPRConfig(),
+				LLM: LLMConfig{
+					Provider: "ollama",
 					Ollama: OllamaConfig{
 						Model:       "llama3.2",
 						Host:        "http://localhost:11434",
@@ -403,9 +421,7 @@ func TestValidateStrict(t *testing.T) {
 						TopP:        0.9,
 						MaxDiff:     4000,
 					},
-					Types: []string{},
 				},
-				PR: validPRConfig(),
 			},
 			wantErr: true,
 			errorCheck: func(err error) bool {
@@ -456,20 +472,20 @@ func TestGetDefaultConfig(t *testing.T) {
 	}
 
 	// Commit defaults
-	if config.Commit.Ollama.Model != "llama3.2" {
-		t.Errorf("Default Commit.Ollama.Model = %s, want 'llama3.2'", config.Commit.Ollama.Model)
+	if config.LLM.Ollama.Model != "llama3.2" {
+		t.Errorf("Default Commit.Ollama.Model = %s, want 'llama3.2'", config.LLM.Ollama.Model)
 	}
 
-	if config.Commit.Ollama.Host != "http://localhost:11434" {
-		t.Errorf("Default Commit.Ollama.Host = %s, want 'http://localhost:11434'", config.Commit.Ollama.Host)
+	if config.LLM.Ollama.Host != "http://localhost:11434" {
+		t.Errorf("Default Commit.Ollama.Host = %s, want 'http://localhost:11434'", config.LLM.Ollama.Host)
 	}
 
-	if config.Commit.Ollama.Temperature != 0.3 {
-		t.Errorf("Default Commit.Ollama.Temperature = %f, want 0.3", config.Commit.Ollama.Temperature)
+	if config.LLM.Ollama.Temperature != 0.3 {
+		t.Errorf("Default Commit.Ollama.Temperature = %f, want 0.3", config.LLM.Ollama.Temperature)
 	}
 
-	if config.Commit.Ollama.MaxDiff != 4000 {
-		t.Errorf("Default Commit.Ollama.MaxDiff = %d, want 4000", config.Commit.Ollama.MaxDiff)
+	if config.LLM.Ollama.MaxDiff != 4000 {
+		t.Errorf("Default Commit.Ollama.MaxDiff = %d, want 4000", config.LLM.Ollama.MaxDiff)
 	}
 
 	expectedCommitTypes := []string{"feat", "fix", "docs", "style", "refactor", "perf", "test", "chore", "ci", "build"}

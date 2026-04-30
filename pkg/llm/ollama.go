@@ -1,4 +1,4 @@
-package commit
+package llm
 
 import (
 	"bytes"
