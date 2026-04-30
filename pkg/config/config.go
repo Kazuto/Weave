@@ -15,8 +15,10 @@ type PRConfig struct {
 }
 
 type CommitConfig struct {
-	Types  []string `yaml:"types"`
-	Prompt string   `yaml:"prompt"`
+	Types            []string `yaml:"types"`
+	Prompt           string   `yaml:"prompt"`
+	ReferenceCommits int      `yaml:"reference_commits"` // Number of recent commits to include as context (0 to disable)
+	ReferenceBranch  string   `yaml:"reference_branch"`  // Base branch to compare against (empty = auto-detect main/master)
 }
 
 type OllamaConfig struct {

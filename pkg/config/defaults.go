@@ -49,6 +49,7 @@ func GetDefaultConfig() *Config {
 			},
 		},
 		Commit: CommitConfig{
+			ReferenceCommits: 5,
 			Types: []string{
 				"feat",
 				"fix",
@@ -72,6 +73,9 @@ Format:
 Types: {{.Types}}
 Scope: The module/component affected in PascalCase (e.g., CI, API, Auth, Core)
 
+Recent commit messages for style reference:
+{{.RecentCommits}}
+
 Rules:
 - First line: type(Scope): Capitalized short description
 - Blank line after the first line
@@ -80,6 +84,7 @@ Rules:
 - Never repeat information from the first line
 - Never add filler bullets like "Add necessary configurations" or "Update file structure"
 - Each bullet must describe a UNIQUE, SPECIFIC change
+- Follow the style and conventions from recent commits
 
 Changed files:
 {{.Files}}

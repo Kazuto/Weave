@@ -30,8 +30,9 @@ func TestGenerator_buildPrompt(t *testing.T) {
 
 	diff := "diff --git a/file.go"
 	files := []string{"file.go", "other.go"}
+	recentCommits := []string{"feat(api): add endpoint", "fix(core): resolve bug"}
 
-	prompt := g.buildPrompt(diff, files)
+	prompt := g.buildPrompt(diff, files, recentCommits)
 
 	if !strings.Contains(prompt, "feat, fix, docs") {
 		t.Error("Prompt should contain commit types")

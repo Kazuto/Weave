@@ -117,3 +117,75 @@ func TestGetChangedFiles_WithChanges(t *testing.T) {
 		t.Errorf("Expected [test.txt], got: %v", files)
 	}
 }
+
+func TestGetRecentCommits(t *testing.T) {
+	if !IsGitRepository() {
+		t.Skip("Not a git repository")
+	}
+
+	commits, err := GetRecentCommits(5)
+	if err != nil {
+		t.Errorf("GetRecentCommits() error = %v", err)
+	}
+
+	// Should return at most 5 commits
+	if len(commits) > 5 {
+		t.Errorf("Expected at most 5 commits, got %d", len(commits))
+	}
+
+	// Each commit should be non-empty
+	for i, commit := range commits {
+		if commit == "" {
+			t.Errorf("Commit %d is empty", i)
+		}
+	}
+}
+
+func TestGetRecentCommitsFromBranch(t *testing.T) {
+	if !IsGitRepository() {
+		t.Skip("Not a git repository")
+	}
+
+	// Test with auto-detection (empty base branch)
+	commits, err := GetRecentCommitsFromBranch(5, "")
+	if err != nil {
+		t.Errorf("GetRecentCommitsFromBranch() error = %v", err)
+	}
+
+	if len(commits) > 5 {
+		t.Errorf("Expected at most 5 commits, got %d", len(commits))
+	}
+
+	// Test with explicit base branch
+	commits, err = GetRecentCommitsFromBranch(5, "master")
+	if err != nil {
+		t.Errorf("GetRecentCommitsFromBranch(master) error = %v", err)
+	}
+
+	// Should not fail even if master doesn't exist (fallback to recent commits)
+	if len(commits) > 5 {
+		t.Errorf("Expected at most 5 commits, got %d", len(commits))
+	}
+}
+
+func TestGetRecentCommits_Zero(t *testing.T) {
+	commits, err := GetRecentCommits(0)
+	if err != nil {
+		t.Errorf("GetRecentCommits(0) error = %v", err)
+	}
+
+	if len(commits) != 0 {
+		t.Errorf("Expected 0 commits, got %d", len(commits))
+	}
+}
+
+func TestGetRecentCommits_Negative(t *testing.T) {
+	commits, err := GetRecentCommits(-1)
+	if err != nil {
+		t.Errorf("GetRecentCommits(-1) error = %v", err)
+	}
+
+	if len(commits) != 0 {
+		t.Errorf("Expected 0 commits, got %d", len(commits))
+	}
+}

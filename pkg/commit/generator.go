@@ -57,7 +57,10 @@ func (g *Generator) Generate(diff string, files []string) (string, error) {
 		diff = diff[:maxDiff]
 	}
 
-	prompt := g.buildPrompt(diff, files)
+	// Get recent commits for context
+	recentCommits, _ := GetRecentCommitsFromBranch(g.config.ReferenceCommits, g.config.ReferenceBranch)
+
+	prompt := g.buildPrompt(diff, files, recentCommits)
 
 	response, err := g.provider.Generate(prompt)
 	if err != nil {
@@ -67,11 +70,19 @@ func (g *Generator) Generate(diff string, files []string) (string, error) {
 	return g.cleanResponse(response), nil
 }
 
-func (g *Generator) buildPrompt(diff string, files []string) string {
+func (g *Generator) buildPrompt(diff string, files []string, recentCommits []string) string {
 	prompt := g.config.Prompt
 	prompt = strings.ReplaceAll(prompt, "{{.Types}}", strings.Join(g.config.Types, ", "))
 	prompt = strings.ReplaceAll(prompt, "{{.Files}}", strings.Join(files, "\n"))
 	prompt = strings.ReplaceAll(prompt, "{{.Diff}}", diff)
+
+	// Add recent commits for context
+	if len(recentCommits) > 0 {
+		prompt = strings.ReplaceAll(prompt, "{{.RecentCommits}}", strings.Join(recentCommits, "\n"))
+	} else {
+		prompt = strings.ReplaceAll(prompt, "{{.RecentCommits}}", "No recent commits available")
+	}
+
 	return prompt
 }
 
