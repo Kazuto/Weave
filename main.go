@@ -62,6 +62,8 @@ func runCommit(args []string) {
 	fs := flag.NewFlagSet("commit", flag.ExitOnError)
 	staged := fs.Bool("staged", true, "Use staged changes (default: true)")
 	autoCommit := fs.Bool("y", false, "Automatically commit without prompting")
+	base := fs.String("base", "", "Base branch for commit reference filtering (default: config or auto-detect)")
+	fs.StringVar(base, "b", "", "Base branch (shorthand)")
 	_ = fs.Parse(args) // ExitOnError handles errors
 
 	if !commit.IsGitAvailable() {
@@ -78,6 +80,11 @@ func runCommit(args []string) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error loading config: %v", err)))
 		os.Exit(1)
+	}
+
+	// Override reference_branch if -b flag is provided
+	if *base != "" {
+		cfg.Commit.ReferenceBranch = *base
 	}
 
 	generator, err := commit.NewGenerator(cfg.Commit, cfg.LLM)
