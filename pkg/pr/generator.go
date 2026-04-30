@@ -3,8 +3,8 @@ package pr
 import (
 	"strings"
 
-	"github.com/Kazuto/Weave/pkg/commit"
 	"github.com/Kazuto/Weave/pkg/config"
+	"github.com/Kazuto/Weave/pkg/llm"
 )
 
 type PRContext struct {
@@ -17,23 +17,28 @@ type PRContext struct {
 }
 
 type Generator struct {
-	ollama *commit.OllamaClient
-	config config.PRConfig
+	provider llm.Provider
+	config   config.PRConfig
 }
 
-func NewGenerator(prCfg config.PRConfig, ollamaCfg config.OllamaConfig) *Generator {
-	return &Generator{
-		ollama: commit.NewOllamaClient(ollamaCfg),
-		config: prCfg,
+func NewGenerator(prCfg config.PRConfig, llmCfg config.LLMConfig) (*Generator, error) {
+	provider, err := llm.NewProvider(llmCfg)
+	if err != nil {
+		return nil, err
 	}
+
+	return &Generator{
+		provider: provider,
+		config:   prCfg,
+	}, nil
 }
 
 func (g *Generator) CheckConnection() bool {
-	return g.ollama.CheckConnection()
+	return g.provider.CheckConnection()
 }
 
 func (g *Generator) CheckModel() bool {
-	return g.ollama.IsModelAvailable()
+	return g.provider.IsModelAvailable()
 }
 
 func (g *Generator) Generate(ctx PRContext) (string, error) {
@@ -43,7 +48,7 @@ func (g *Generator) Generate(ctx PRContext) (string, error) {
 
 	prompt := g.buildPrompt(ctx)
 
-	response, err := g.ollama.Generate(prompt)
+	response, err := g.provider.Generate(prompt)
 	if err != nil {
 		return "", err
 	}

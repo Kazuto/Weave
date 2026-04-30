@@ -49,13 +49,6 @@ func GetDefaultConfig() *Config {
 			},
 		},
 		Commit: CommitConfig{
-			Ollama: OllamaConfig{
-				Model:       "llama3.2",
-				Host:        "http://localhost:11434",
-				Temperature: 0.3,
-				TopP:        0.9,
-				MaxDiff:     4000,
-			},
 			Types: []string{
 				"feat",
 				"fix",
@@ -101,6 +94,24 @@ Generate ONLY the commit message, nothing else. Be concise and specific.`,
 			DefaultRemote: "",
 			MaxDiff:       8000,
 			Prompt:        getDefaultPRPrompt(),
+		},
+		LLM: LLMConfig{
+			Provider: "ollama",
+			Ollama: OllamaConfig{
+				Model:       "llama3.2",
+				Host:        "http://localhost:11434",
+				Temperature: 0.3,
+				TopP:        0.9,
+				MaxDiff:     4000,
+			},
+			OpenAI: OpenAIConfig{
+				Model:       "gpt-4",
+				Host:        "http://localhost:1234",
+				APIKey:      "",
+				Temperature: 0.7,
+				TopP:        0.9,
+				MaxDiff:     4000,
+			},
 		},
 	}
 }

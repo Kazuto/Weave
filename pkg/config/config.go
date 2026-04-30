@@ -4,6 +4,7 @@ type Config struct {
 	Branch BranchConfig `yaml:"branch"`
 	Commit CommitConfig `yaml:"commit"`
 	PR     PRConfig     `yaml:"pr"`
+	LLM    LLMConfig    `yaml:"llm"`
 }
 
 type PRConfig struct {
@@ -14,9 +15,8 @@ type PRConfig struct {
 }
 
 type CommitConfig struct {
-	Ollama OllamaConfig `yaml:"ollama"`
-	Types  []string     `yaml:"types"`
-	Prompt string       `yaml:"prompt"`
+	Types  []string `yaml:"types"`
+	Prompt string   `yaml:"prompt"`
 }
 
 type OllamaConfig struct {
@@ -25,6 +25,21 @@ type OllamaConfig struct {
 	Temperature float64 `yaml:"temperature"`
 	TopP        float64 `yaml:"top_p"`
 	MaxDiff     int     `yaml:"max_diff"`
+}
+
+type OpenAIConfig struct {
+	Model       string  `yaml:"model"`
+	Host        string  `yaml:"host"`
+	APIKey      string  `yaml:"api_key"`
+	Temperature float64 `yaml:"temperature"`
+	TopP        float64 `yaml:"top_p"`
+	MaxDiff     int     `yaml:"max_diff"`
+}
+
+type LLMConfig struct {
+	Provider string       `yaml:"provider"` // "ollama" or "openai"
+	Ollama   OllamaConfig `yaml:"ollama"`
+	OpenAI   OpenAIConfig `yaml:"openai"`
 }
 
 type BranchConfig struct {

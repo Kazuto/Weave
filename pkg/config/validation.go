@@ -98,46 +98,52 @@ func ValidateAndFix(config *Config) *ValidationResult {
 		}
 	}
 
-	// Validate and fix commit.ollama.model
-	if config.Commit.Ollama.Model == "" {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("commit.ollama.model is empty, using default '%s'", defaults.Commit.Ollama.Model))
-		config.Commit.Ollama.Model = defaults.Commit.Ollama.Model
+	// Validate and fix llm provider
+	if config.LLM.Provider == "" {
+		config.LLM.Provider = defaults.LLM.Provider
 		result.Fixed = true
 	}
 
-	// Validate and fix commit.ollama.host
-	if config.Commit.Ollama.Host == "" {
+	// Validate and fix llm.ollama.model
+	if config.LLM.Ollama.Model == "" {
 		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("commit.ollama.host is empty, using default '%s'", defaults.Commit.Ollama.Host))
-		config.Commit.Ollama.Host = defaults.Commit.Ollama.Host
+			fmt.Sprintf("llm.ollama.model is empty, using default '%s'", defaults.LLM.Ollama.Model))
+		config.LLM.Ollama.Model = defaults.LLM.Ollama.Model
 		result.Fixed = true
 	}
 
-	// Validate and fix commit.ollama.temperature
-	if config.Commit.Ollama.Temperature < 0 || config.Commit.Ollama.Temperature > 2 {
+	// Validate and fix llm.ollama.host
+	if config.LLM.Ollama.Host == "" {
 		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("commit.ollama.temperature %.2f is out of range (0-2), using default %.2f",
-				config.Commit.Ollama.Temperature, defaults.Commit.Ollama.Temperature))
-		config.Commit.Ollama.Temperature = defaults.Commit.Ollama.Temperature
+			fmt.Sprintf("llm.ollama.host is empty, using default '%s'", defaults.LLM.Ollama.Host))
+		config.LLM.Ollama.Host = defaults.LLM.Ollama.Host
 		result.Fixed = true
 	}
 
-	// Validate and fix commit.ollama.top_p
-	if config.Commit.Ollama.TopP < 0 || config.Commit.Ollama.TopP > 1 {
+	// Validate and fix llm.ollama.temperature
+	if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
 		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("commit.ollama.top_p %.2f is out of range (0-1), using default %.2f",
-				config.Commit.Ollama.TopP, defaults.Commit.Ollama.TopP))
-		config.Commit.Ollama.TopP = defaults.Commit.Ollama.TopP
+			fmt.Sprintf("llm.ollama.temperature %.2f is out of range (0-2), using default %.2f",
+				config.LLM.Ollama.Temperature, defaults.LLM.Ollama.Temperature))
+		config.LLM.Ollama.Temperature = defaults.LLM.Ollama.Temperature
 		result.Fixed = true
 	}
 
-	// Validate and fix commit.ollama.max_diff
-	if config.Commit.Ollama.MaxDiff < 100 || config.Commit.Ollama.MaxDiff > 100000 {
+	// Validate and fix llm.ollama.top_p
+	if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
 		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("commit.ollama.max_diff %d is out of range (100-100000), using default %d",
-				config.Commit.Ollama.MaxDiff, defaults.Commit.Ollama.MaxDiff))
-		config.Commit.Ollama.MaxDiff = defaults.Commit.Ollama.MaxDiff
+			fmt.Sprintf("llm.ollama.top_p %.2f is out of range (0-1), using default %.2f",
+				config.LLM.Ollama.TopP, defaults.LLM.Ollama.TopP))
+		config.LLM.Ollama.TopP = defaults.LLM.Ollama.TopP
+		result.Fixed = true
+	}
+
+	// Validate and fix llm.ollama.max_diff
+	if config.LLM.Ollama.MaxDiff < 100 || config.LLM.Ollama.MaxDiff > 100000 {
+		result.Warnings = append(result.Warnings,
+			fmt.Sprintf("llm.ollama.max_diff %d is out of range (100-100000), using default %d",
+				config.LLM.Ollama.MaxDiff, defaults.LLM.Ollama.MaxDiff))
+		config.LLM.Ollama.MaxDiff = defaults.LLM.Ollama.MaxDiff
 		result.Fixed = true
 	}
 
@@ -223,29 +229,29 @@ func ValidateStrict(config *Config) error {
 		}
 	}
 
-	// Validate commit.ollama.model
-	if config.Commit.Ollama.Model == "" {
-		return fmt.Errorf("commit.ollama.model cannot be empty")
+	// Validate llm.ollama.model
+	if config.LLM.Ollama.Model == "" {
+		return fmt.Errorf("llm.ollama.model cannot be empty")
 	}
 
-	// Validate commit.ollama.host
-	if config.Commit.Ollama.Host == "" {
-		return fmt.Errorf("commit.ollama.host cannot be empty")
+	// Validate llm.ollama.host
+	if config.LLM.Ollama.Host == "" {
+		return fmt.Errorf("llm.ollama.host cannot be empty")
 	}
 
-	// Validate commit.ollama.temperature
-	if config.Commit.Ollama.Temperature < 0 || config.Commit.Ollama.Temperature > 2 {
-		return fmt.Errorf("commit.ollama.temperature must be between 0 and 2")
+	// Validate llm.ollama.temperature
+	if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
+		return fmt.Errorf("llm.ollama.temperature must be between 0 and 2")
 	}
 
-	// Validate commit.ollama.top_p
-	if config.Commit.Ollama.TopP < 0 || config.Commit.Ollama.TopP > 1 {
-		return fmt.Errorf("commit.ollama.top_p must be between 0 and 1")
+	// Validate llm.ollama.top_p
+	if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
+		return fmt.Errorf("llm.ollama.top_p must be between 0 and 1")
 	}
 
-	// Validate commit.ollama.max_diff
-	if config.Commit.Ollama.MaxDiff < 100 || config.Commit.Ollama.MaxDiff > 100000 {
-		return fmt.Errorf("commit.ollama.max_diff must be between 100 and 100000")
+	// Validate llm.ollama.max_diff
+	if config.LLM.Ollama.MaxDiff < 100 || config.LLM.Ollama.MaxDiff > 100000 {
+		return fmt.Errorf("llm.ollama.max_diff must be between 100 and 100000")
 	}
 
 	// Validate commit.types

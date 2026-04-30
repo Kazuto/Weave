@@ -5,48 +5,61 @@ import (
 	"strings"
 
 	"github.com/Kazuto/Weave/pkg/config"
+	"github.com/Kazuto/Weave/pkg/llm"
 )
 
 type Generator struct {
-	ollama *OllamaClient
-	config config.CommitConfig
+	provider  llm.Provider
+	config    config.CommitConfig
+	llmConfig config.LLMConfig
 }
 
-func NewGenerator(cfg config.CommitConfig) *Generator {
+func NewGenerator(cfg config.CommitConfig, llmCfg config.LLMConfig) (*Generator, error) {
+	provider, err := llm.NewProvider(llmCfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Generator{
-		ollama: NewOllamaClient(cfg.Ollama),
-		config: cfg,
-	}
+		provider:  provider,
+		config:    cfg,
+		llmConfig: llmCfg,
+	}, nil
 }
 
-func (g *Generator) CheckOllama() error {
-	if !g.ollama.CheckConnection() {
-		return fmt.Errorf("cannot connect to Ollama at %s", g.config.Ollama.Host)
+func (g *Generator) CheckProvider() error {
+	if !g.provider.CheckConnection() {
+		providerType := g.llmConfig.Provider
+		if providerType == "" {
+			providerType = "ollama"
+		}
+		return fmt.Errorf("cannot connect to %s provider", providerType)
 	}
 
-	if !g.ollama.IsModelAvailable() {
-		return fmt.Errorf("model '%s' is not available", g.config.Ollama.Model)
+	if !g.provider.IsModelAvailable() {
+		return fmt.Errorf("model is not available")
 	}
 
 	return nil
 }
 
 func (g *Generator) CheckConnection() bool {
-	return g.ollama.CheckConnection()
+	return g.provider.CheckConnection()
 }
 
 func (g *Generator) CheckModel() bool {
-	return g.ollama.IsModelAvailable()
+	return g.provider.IsModelAvailable()
 }
 
 func (g *Generator) Generate(diff string, files []string) (string, error) {
-	if len(diff) > g.config.Ollama.MaxDiff {
-		diff = diff[:g.config.Ollama.MaxDiff]
+	maxDiff := llm.GetMaxDiff(g.llmConfig)
+	if maxDiff > 0 && len(diff) > maxDiff {
+		diff = diff[:maxDiff]
 	}
 
 	prompt := g.buildPrompt(diff, files)
 
-	response, err := g.ollama.Generate(prompt)
+	response, err := g.provider.Generate(prompt)
 	if err != nil {
 		return "", err
 	}
