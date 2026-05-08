@@ -35,9 +35,13 @@ type ollamaTagsResponse struct {
 }
 
 func NewOllamaClient(cfg config.OllamaConfig) *OllamaClient {
+	timeout := 300 * time.Second // Default: 5 minutes for local models
+	if cfg.Timeout > 0 {
+		timeout = time.Duration(cfg.Timeout) * time.Second
+	}
 	return &OllamaClient{
 		config: cfg,
-		client: &http.Client{Timeout: 60 * time.Second},
+		client: &http.Client{Timeout: timeout},
 	}
 }
 

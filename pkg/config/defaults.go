@@ -108,6 +108,7 @@ Generate ONLY the commit message, nothing else. Be concise and specific.`,
 				Temperature: 0.3,
 				TopP:        0.9,
 				MaxDiff:     4000,
+				Timeout:     0, // 0 = use default (300s for local models)
 			},
 			OpenAI: OpenAIConfig{
 				Model:       "gpt-4",
@@ -116,6 +117,7 @@ Generate ONLY the commit message, nothing else. Be concise and specific.`,
 				Temperature: 0.7,
 				TopP:        0.9,
 				MaxDiff:     4000,
+				Timeout:     0, // 0 = use default (300s for local models)
 			},
 		},
 	}
