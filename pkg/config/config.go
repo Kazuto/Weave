@@ -27,6 +27,7 @@ type OllamaConfig struct {
 	Temperature float64 `yaml:"temperature"`
 	TopP        float64 `yaml:"top_p"`
 	MaxDiff     int     `yaml:"max_diff"`
+	Timeout     int     `yaml:"timeout"` // Request timeout in seconds (0 = use default)
 }
 
 type OpenAIConfig struct {
@@ -36,6 +37,7 @@ type OpenAIConfig struct {
 	Temperature float64 `yaml:"temperature"`
 	TopP        float64 `yaml:"top_p"`
 	MaxDiff     int     `yaml:"max_diff"`
+	Timeout     int     `yaml:"timeout"` // Request timeout in seconds (0 = use default)
 }
 
 type LLMConfig struct {
