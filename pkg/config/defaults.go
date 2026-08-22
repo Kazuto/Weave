@@ -47,6 +47,7 @@ func GetDefaultConfig() *Config {
 				Lowercase:     true,
 				RemoveUmlauts: false,
 			},
+			EnableGitflow: true,
 		},
 		Commit: CommitConfig{
 			ReferenceCommits: 5,

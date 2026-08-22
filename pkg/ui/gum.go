@@ -11,6 +11,7 @@ import (
 const (
 	colorReset  = "\033[0m"
 	colorRed    = "\033[91m"
+	colorYellow = "\033[93m"
 	colorGreen  = "\033[92m"
 	colorCyan   = "\033[96m"
 	colorPurple = "\033[38;5;141m" // 256-color purple
@@ -40,7 +41,7 @@ func shouldColorize() bool {
 	// Enable colors for common terminals
 	term := os.Getenv("TERM")
 	if strings.Contains(term, "color") || strings.Contains(term, "xterm") ||
-	   strings.Contains(term, "screen") || strings.Contains(term, "tmux") {
+		strings.Contains(term, "screen") || strings.Contains(term, "tmux") {
 		return true
 	}
 
@@ -80,6 +81,10 @@ func FormatSuccess(text string) string {
 // FormatError creates an error message
 func FormatError(text string) string {
 	return colorize("✗ "+text, colorRed)
+}
+
+func FormatWarning(text string) string {
+	return colorize("⚠ "+text, colorYellow)
 }
 
 // FormatInfo creates an info message
