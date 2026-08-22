@@ -8,8 +8,9 @@ import (
 
 func testBranchConfig() config.BranchConfig {
 	return config.BranchConfig{
-		MaxLength:   60,
-		DefaultType: "feature",
+		MaxLength:     60,
+		DefaultType:   "feature",
+		EnableGitflow: true,
 		Types: map[string]string{
 			"feature": "feature",
 			"bugfix":  "bugfix",
@@ -21,6 +22,12 @@ func testBranchConfig() config.BranchConfig {
 			RemoveUmlauts: true,
 		},
 	}
+}
+
+func testBranchConfigNoGitflow() config.BranchConfig {
+	cfg := testBranchConfig()
+	cfg.EnableGitflow = false
+	return cfg
 }
 
 func TestGenerator_GenerateName(t *testing.T) {
@@ -84,6 +91,71 @@ func TestGenerator_GenerateName(t *testing.T) {
 				Title:    "Füge Benutzerverwaltung hinzü",
 			},
 			expected: "feature/GER-123-fuege-benutzerverwaltung-hinzue",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := generator.GenerateName(tt.info)
+			if result != tt.expected {
+				t.Errorf("GenerateName() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGenerator_GenerateName_GitflowDisabled(t *testing.T) {
+	generator := NewGenerator(testBranchConfigNoGitflow())
+
+	tests := []struct {
+		name     string
+		info     BranchInfo
+		expected string
+	}{
+		{
+			name: "basic branch generation without type prefix",
+			info: BranchInfo{
+				Type:     "feature",
+				TicketID: "STR-123",
+				Title:    "Add user authentication",
+			},
+			expected: "STR-123-add-user-authentication",
+		},
+		{
+			name: "empty title uses ticket ID",
+			info: BranchInfo{
+				Type:     "hotfix",
+				TicketID: "HOT-999",
+				Title:    "",
+			},
+			expected: "HOT-999-hot-999",
+		},
+		{
+			name: "missing type is allowed when gitflow disabled",
+			info: BranchInfo{
+				Type:     "",
+				TicketID: "STR-123",
+				Title:    "Add user authentication",
+			},
+			expected: "STR-123-add-user-authentication",
+		},
+		{
+			name: "missing ticket ID still returns empty",
+			info: BranchInfo{
+				Type:     "feature",
+				TicketID: "",
+				Title:    "Some title",
+			},
+			expected: "",
+		},
+		{
+			name: "title with German umlauts",
+			info: BranchInfo{
+				Type:     "feature",
+				TicketID: "GER-123",
+				Title:    "Füge Benutzerverwaltung hinzü",
+			},
+			expected: "GER-123-fuege-benutzerverwaltung-hinzue",
 		},
 	}
 

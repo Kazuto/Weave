@@ -47,10 +47,11 @@ type LLMConfig struct {
 }
 
 type BranchConfig struct {
-	MaxLength    int               `yaml:"max_length"`
-	DefaultType  string            `yaml:"default_type"`
-	Types        map[string]string `yaml:"types"`
-	Sanitization SanitizationConfig `yaml:"sanitization"`
+	MaxLength     int                `yaml:"max_length"`
+	DefaultType   string             `yaml:"default_type"`
+	Types         map[string]string  `yaml:"types"`
+	Sanitization  SanitizationConfig `yaml:"sanitization"`
+	EnableGitflow bool               `yaml:"enable_gitflow"`
 }
 
 type SanitizationConfig struct {
