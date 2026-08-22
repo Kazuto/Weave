@@ -239,6 +239,7 @@ branch:
     separator: "-" # Replace spaces/special chars
     lowercase: true # Convert to lowercase
     remove_umlauts: false # Remove German umlauts
+  enable_gitflow: true # Enable gitflow branch naming
 
 commit:
   ollama:

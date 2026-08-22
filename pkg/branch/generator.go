@@ -27,7 +27,10 @@ func NewGenerator(cfg config.BranchConfig) *Generator {
 }
 
 func (g *Generator) GenerateName(info BranchInfo) string {
-	if info.Type == "" || info.TicketID == "" {
+	if info.TicketID == "" {
+		return ""
+	}
+	if g.config.EnableGitflow && info.Type == "" {
 		return ""
 	}
 
@@ -41,11 +44,16 @@ func (g *Generator) GenerateName(info BranchInfo) string {
 		separator = "-"
 	}
 
-	// Calculate available length for title part
-	// Format: type/ticket-title
-	prefixLength := len(info.Type) + 1 + len(info.TicketID) + len(separator)
-	availableTitleLength := g.config.MaxLength - prefixLength
+	// Build the prefix string (e.g. "feature/JIRA-123-" or "JIRA-123-")
+	var prefix string
+	if g.config.EnableGitflow {
+		prefix = fmt.Sprintf("%s/%s%s", info.Type, info.TicketID, separator)
+	} else {
+		prefix = fmt.Sprintf("%s%s", info.TicketID, separator)
+	}
 
+	// Calculate available length for title part
+	availableTitleLength := g.config.MaxLength - len(prefix)
 	if availableTitleLength < 1 {
 		availableTitleLength = 10
 	}
@@ -57,18 +65,18 @@ func (g *Generator) GenerateName(info BranchInfo) string {
 		MaxLength:     availableTitleLength,
 	})
 
-	branchName := fmt.Sprintf("%s/%s%s%s", info.Type, info.TicketID, separator, sanitizedTitle)
+	branchName := prefix + sanitizedTitle
 
 	// Final length check
 	if len(branchName) > g.config.MaxLength {
-		maxTitleLength := g.config.MaxLength - prefixLength
+		maxTitleLength := g.config.MaxLength - len(prefix)
 		if maxTitleLength > 0 {
 			truncatedTitle := sanitizedTitle
 			if len(sanitizedTitle) > maxTitleLength {
 				truncatedTitle = sanitizedTitle[:maxTitleLength]
 				truncatedTitle = strings.TrimSuffix(truncatedTitle, separator)
 			}
-			branchName = fmt.Sprintf("%s/%s%s%s", info.Type, info.TicketID, separator, truncatedTitle)
+			branchName = prefix + truncatedTitle
 		}
 	}
 
@@ -81,15 +89,15 @@ func (g *Generator) ValidateName(name string) error {
 	}
 
 	invalidPatterns := []string{
-		`^\.`,              // Cannot start with dot
-		`\.$`,              // Cannot end with dot
-		`\.\.`,             // Cannot contain double dots
-		`^/`,               // Cannot start with slash
-		`/$`,               // Cannot end with slash
-		`//`,               // Cannot contain double slashes
-		`\s`,               // Cannot contain spaces
-		`[\x00-\x1f\x7f]`,  // Cannot contain control characters
-		`[~^:?*\[]`,        // Cannot contain special Git characters
+		`^\.`,             // Cannot start with dot
+		`\.$`,             // Cannot end with dot
+		`\.\.`,            // Cannot contain double dots
+		`^/`,              // Cannot start with slash
+		`/$`,              // Cannot end with slash
+		`//`,              // Cannot contain double slashes
+		`\s`,              // Cannot contain spaces
+		`[\x00-\x1f\x7f]`, // Cannot contain control characters
+		`[~^:?*\[]`,       // Cannot contain special Git characters
 	}
 
 	for _, pattern := range invalidPatterns {

@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	"net/url"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -257,10 +257,14 @@ func runBranch(args []string) {
 	}
 
 	var selectedType string
-	if *branchType != "" {
-		selectedType = *branchType
-	} else {
-		selectedType = promptBranchType(cfg.Branch.Types, cfg.Branch.DefaultType)
+	if cfg.Branch.EnableGitflow {
+		if *branchType != "" {
+			selectedType = *branchType
+		} else {
+			selectedType = promptBranchType(cfg.Branch.Types, cfg.Branch.DefaultType)
+		}
+	} else if *branchType != "" {
+		fmt.Println(ui.FormatWarning("--type is ignored because gitflow is disabled"))
 	}
 
 	var ticketTitle string
