@@ -27,7 +27,10 @@ func NewGenerator(cfg config.BranchConfig) *Generator {
 }
 
 func (g *Generator) GenerateName(info BranchInfo) string {
-	if info.Type == "" || info.TicketID == "" {
+	if info.TicketID == "" {
+		return ""
+	}
+	if g.config.EnableGitflow && info.Type == "" {
 		return ""
 	}
 
@@ -41,18 +44,8 @@ func (g *Generator) GenerateName(info BranchInfo) string {
 		separator = "-"
 	}
 
-	// Determine prefix parts based on whether gitflow is enabled
-	var prefixParts []string
-
-	if g.config.EnableGitflow {
-		prefixParts = append(prefixParts, info.Type)
-	}
-
-	prefixParts = append(prefixParts, info.TicketID)
-
 	// Build the prefix string (e.g. "feature/JIRA-123-" or "JIRA-123-")
 	var prefix string
-
 	if g.config.EnableGitflow {
 		prefix = fmt.Sprintf("%s/%s%s", info.Type, info.TicketID, separator)
 	} else {
@@ -61,7 +54,6 @@ func (g *Generator) GenerateName(info BranchInfo) string {
 
 	// Calculate available length for title part
 	availableTitleLength := g.config.MaxLength - len(prefix)
-
 	if availableTitleLength < 1 {
 		availableTitleLength = 10
 	}
