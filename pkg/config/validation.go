@@ -104,38 +104,41 @@ func ValidateAndFix(config *Config) *ValidationResult {
 		result.Fixed = true
 	}
 
-	// Validate and fix llm.ollama.model
-	if config.LLM.Ollama.Model == "" {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.model is empty, using default '%s'", defaults.LLM.Ollama.Model))
-		config.LLM.Ollama.Model = defaults.LLM.Ollama.Model
-		result.Fixed = true
-	}
+	// Validate and fix llm.ollama fields only when provider is ollama
+	if config.LLM.Provider == "ollama" || config.LLM.Provider == "" {
+		// Validate and fix llm.ollama.model
+		if config.LLM.Ollama.Model == "" {
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("llm.ollama.model is empty, using default '%s'", defaults.LLM.Ollama.Model))
+			config.LLM.Ollama.Model = defaults.LLM.Ollama.Model
+			result.Fixed = true
+		}
 
-	// Validate and fix llm.ollama.host
-	if config.LLM.Ollama.Host == "" {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.host is empty, using default '%s'", defaults.LLM.Ollama.Host))
-		config.LLM.Ollama.Host = defaults.LLM.Ollama.Host
-		result.Fixed = true
-	}
+		// Validate and fix llm.ollama.host
+		if config.LLM.Ollama.Host == "" {
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("llm.ollama.host is empty, using default '%s'", defaults.LLM.Ollama.Host))
+			config.LLM.Ollama.Host = defaults.LLM.Ollama.Host
+			result.Fixed = true
+		}
 
-	// Validate and fix llm.ollama.temperature
-	if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.temperature %.2f is out of range (0-2), using default %.2f",
-				config.LLM.Ollama.Temperature, defaults.LLM.Ollama.Temperature))
-		config.LLM.Ollama.Temperature = defaults.LLM.Ollama.Temperature
-		result.Fixed = true
-	}
+		// Validate and fix llm.ollama.temperature
+		if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("llm.ollama.temperature %.2f is out of range (0-2), using default %.2f",
+					config.LLM.Ollama.Temperature, defaults.LLM.Ollama.Temperature))
+			config.LLM.Ollama.Temperature = defaults.LLM.Ollama.Temperature
+			result.Fixed = true
+		}
 
-	// Validate and fix llm.ollama.top_p
-	if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.top_p %.2f is out of range (0-1), using default %.2f",
-				config.LLM.Ollama.TopP, defaults.LLM.Ollama.TopP))
-		config.LLM.Ollama.TopP = defaults.LLM.Ollama.TopP
-		result.Fixed = true
+		// Validate and fix llm.ollama.top_p
+		if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("llm.ollama.top_p %.2f is out of range (0-1), using default %.2f",
+					config.LLM.Ollama.TopP, defaults.LLM.Ollama.TopP))
+			config.LLM.Ollama.TopP = defaults.LLM.Ollama.TopP
+			result.Fixed = true
+		}
 	}
 
 	// Validate and fix llm.max_diff
@@ -220,24 +223,27 @@ func ValidateStrict(config *Config) error {
 		}
 	}
 
-	// Validate llm.ollama.model
-	if config.LLM.Ollama.Model == "" {
-		return fmt.Errorf("llm.ollama.model cannot be empty")
-	}
+	// Validate ollama fields only when provider is ollama
+	if config.LLM.Provider == "ollama" || config.LLM.Provider == "" {
+		// Validate llm.ollama.model
+		if config.LLM.Ollama.Model == "" {
+			return fmt.Errorf("llm.ollama.model cannot be empty")
+		}
 
-	// Validate llm.ollama.host
-	if config.LLM.Ollama.Host == "" {
-		return fmt.Errorf("llm.ollama.host cannot be empty")
-	}
+		// Validate llm.ollama.host
+		if config.LLM.Ollama.Host == "" {
+			return fmt.Errorf("llm.ollama.host cannot be empty")
+		}
 
-	// Validate llm.ollama.temperature
-	if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
-		return fmt.Errorf("llm.ollama.temperature must be between 0 and 2")
-	}
+		// Validate llm.ollama.temperature
+		if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
+			return fmt.Errorf("llm.ollama.temperature must be between 0 and 2")
+		}
 
-	// Validate llm.ollama.top_p
-	if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
-		return fmt.Errorf("llm.ollama.top_p must be between 0 and 1")
+		// Validate llm.ollama.top_p
+		if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
+			return fmt.Errorf("llm.ollama.top_p must be between 0 and 1")
+		}
 	}
 
 	// Validate llm.ollama.max_diff
