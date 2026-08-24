@@ -138,12 +138,12 @@ func ValidateAndFix(config *Config) *ValidationResult {
 		result.Fixed = true
 	}
 
-	// Validate and fix llm.ollama.max_diff
-	if config.LLM.Ollama.MaxDiff < 100 || config.LLM.Ollama.MaxDiff > 100000 {
+	// Validate and fix llm.max_diff
+	if config.LLM.MaxDiff < 100 || config.LLM.MaxDiff > 100000 {
 		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.max_diff %d is out of range (100-100000), using default %d",
-				config.LLM.Ollama.MaxDiff, defaults.LLM.Ollama.MaxDiff))
-		config.LLM.Ollama.MaxDiff = defaults.LLM.Ollama.MaxDiff
+			fmt.Sprintf("llm.max_diff %d is out of range (100-100000), using default %d",
+				config.LLM.MaxDiff, defaults.LLM.MaxDiff))
+		config.LLM.MaxDiff = defaults.LLM.MaxDiff
 		result.Fixed = true
 	}
 
@@ -158,15 +158,6 @@ func ValidateAndFix(config *Config) *ValidationResult {
 	if config.Commit.Prompt == "" {
 		result.Warnings = append(result.Warnings, "commit.prompt is empty, using default")
 		config.Commit.Prompt = defaults.Commit.Prompt
-		result.Fixed = true
-	}
-
-	// Validate and fix pr.max_diff
-	if config.PR.MaxDiff < 100 || config.PR.MaxDiff > 100000 {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("pr.max_diff %d is out of range (100-100000), using default %d",
-				config.PR.MaxDiff, defaults.PR.MaxDiff))
-		config.PR.MaxDiff = defaults.PR.MaxDiff
 		result.Fixed = true
 	}
 
@@ -250,8 +241,8 @@ func ValidateStrict(config *Config) error {
 	}
 
 	// Validate llm.ollama.max_diff
-	if config.LLM.Ollama.MaxDiff < 100 || config.LLM.Ollama.MaxDiff > 100000 {
-		return fmt.Errorf("llm.ollama.max_diff must be between 100 and 100000")
+	if config.LLM.MaxDiff < 100 || config.LLM.MaxDiff > 100000 {
+		return fmt.Errorf("llm.max_diff must be between 100 and 100000")
 	}
 
 	// Validate commit.types
@@ -262,11 +253,6 @@ func ValidateStrict(config *Config) error {
 	// Validate commit.prompt
 	if config.Commit.Prompt == "" {
 		return fmt.Errorf("commit.prompt cannot be empty")
-	}
-
-	// Validate pr.max_diff
-	if config.PR.MaxDiff < 100 || config.PR.MaxDiff > 100000 {
-		return fmt.Errorf("pr.max_diff must be between 100 and 100000")
 	}
 
 	// Validate pr.prompt

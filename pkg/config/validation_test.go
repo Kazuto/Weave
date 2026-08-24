@@ -212,12 +212,12 @@ func TestValidateAndFix(t *testing.T) {
 				PR: validPRConfig(),
 				LLM: LLMConfig{
 					Provider: "ollama",
+					MaxDiff:  4000,
 					Ollama: OllamaConfig{
 						Model:       "",
 						Host:        "http://localhost:11434",
 						Temperature: 0.3,
 						TopP:        0.9,
-						MaxDiff:     4000,
 					},
 				},
 			},
@@ -236,12 +236,12 @@ func TestValidateAndFix(t *testing.T) {
 				PR: validPRConfig(),
 				LLM: LLMConfig{
 					Provider: "ollama",
+					MaxDiff:  4000,
 					Ollama: OllamaConfig{
 						Model:       "llama3.2",
 						Host:        "http://localhost:11434",
 						Temperature: 5.0,
 						TopP:        0.9,
-						MaxDiff:     4000,
 					},
 				},
 			},
@@ -366,12 +366,12 @@ func TestValidateStrict(t *testing.T) {
 				PR: validPRConfig(),
 				LLM: LLMConfig{
 					Provider: "ollama",
+					MaxDiff:  4000,
 					Ollama: OllamaConfig{
 						Model:       "",
 						Host:        "http://localhost:11434",
 						Temperature: 0.3,
 						TopP:        0.9,
-						MaxDiff:     4000,
 					},
 				},
 			},
@@ -390,12 +390,12 @@ func TestValidateStrict(t *testing.T) {
 				PR: validPRConfig(),
 				LLM: LLMConfig{
 					Provider: "ollama",
+					MaxDiff:  4000,
 					Ollama: OllamaConfig{
 						Model:       "llama3.2",
 						Host:        "http://localhost:11434",
 						Temperature: 5.0,
 						TopP:        0.9,
-						MaxDiff:     4000,
 					},
 				},
 			},
@@ -414,12 +414,12 @@ func TestValidateStrict(t *testing.T) {
 				PR: validPRConfig(),
 				LLM: LLMConfig{
 					Provider: "ollama",
+					MaxDiff:  4000,
 					Ollama: OllamaConfig{
 						Model:       "llama3.2",
 						Host:        "http://localhost:11434",
 						Temperature: 0.3,
 						TopP:        0.9,
-						MaxDiff:     4000,
 					},
 				},
 			},
@@ -484,8 +484,8 @@ func TestGetDefaultConfig(t *testing.T) {
 		t.Errorf("Default Commit.Ollama.Temperature = %f, want 0.3", config.LLM.Ollama.Temperature)
 	}
 
-	if config.LLM.Ollama.MaxDiff != 4000 {
-		t.Errorf("Default Commit.Ollama.MaxDiff = %d, want 4000", config.LLM.Ollama.MaxDiff)
+	if config.LLM.MaxDiff != 4000 {
+		t.Errorf("Default LLM.MaxDiff = %d, want 4000", config.LLM.MaxDiff)
 	}
 
 	expectedCommitTypes := []string{"feat", "fix", "docs", "style", "refactor", "perf", "test", "chore", "ci", "build"}

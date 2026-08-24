@@ -98,18 +98,17 @@ Generate ONLY the commit message, nothing else. Be concise and specific.`,
 		PR: PRConfig{
 			DefaultBase:   "",
 			DefaultRemote: "",
-			MaxDiff:       8000,
 			Prompt:        getDefaultPRPrompt(),
 		},
 		LLM: LLMConfig{
 			Provider: "ollama",
+			MaxDiff:  4000,
 			Ollama: OllamaConfig{
 				Model:       "llama3.2",
 				Host:        "http://localhost:11434",
 				Temperature: 0.3,
 				TopP:        0.9,
-				MaxDiff:     4000,
-				Timeout:     0, // 0 = use default (300s for local models)
+				Timeout:     0,
 			},
 			OpenAI: OpenAIConfig{
 				Model:       "gpt-4",
@@ -117,8 +116,7 @@ Generate ONLY the commit message, nothing else. Be concise and specific.`,
 				APIKey:      "",
 				Temperature: 0.7,
 				TopP:        0.9,
-				MaxDiff:     4000,
-				Timeout:     0, // 0 = use default (300s for local models)
+				Timeout:     0,
 			},
 		},
 	}

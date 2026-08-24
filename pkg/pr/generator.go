@@ -17,8 +17,9 @@ type PRContext struct {
 }
 
 type Generator struct {
-	provider llm.Provider
-	config   config.PRConfig
+	provider  llm.Provider
+	config    config.PRConfig
+	llmConfig config.LLMConfig
 }
 
 func NewGenerator(prCfg config.PRConfig, llmCfg config.LLMConfig) (*Generator, error) {
@@ -28,8 +29,9 @@ func NewGenerator(prCfg config.PRConfig, llmCfg config.LLMConfig) (*Generator, e
 	}
 
 	return &Generator{
-		provider: provider,
-		config:   prCfg,
+		provider:  provider,
+		config:    prCfg,
+		llmConfig: llmCfg,
 	}, nil
 }
 
@@ -42,8 +44,9 @@ func (g *Generator) CheckModel() bool {
 }
 
 func (g *Generator) Generate(ctx PRContext) (string, error) {
-	if g.config.MaxDiff > 0 && len(ctx.Diff) > g.config.MaxDiff {
-		ctx.Diff = ctx.Diff[:g.config.MaxDiff]
+	maxDiff := g.llmConfig.MaxDiff
+	if maxDiff > 0 && len(ctx.Diff) > maxDiff {
+		ctx.Diff = ctx.Diff[:maxDiff]
 	}
 
 	prompt := g.buildPrompt(ctx)

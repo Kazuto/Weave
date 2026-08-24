@@ -12,7 +12,6 @@ func TestNewOllamaClient(t *testing.T) {
 		Host:        "http://localhost:11434",
 		Temperature: 0.3,
 		TopP:        0.9,
-		MaxDiff:     4000,
 	}
 
 	client := NewOllamaClient(cfg)

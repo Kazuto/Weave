@@ -14,12 +14,12 @@ func TestGenerator_buildPrompt(t *testing.T) {
 	}
 	llmCfg := config.LLMConfig{
 		Provider: "ollama",
+		MaxDiff:  4000,
 		Ollama: config.OllamaConfig{
 			Model:       "llama3.2",
 			Host:        "http://localhost:11434",
 			Temperature: 0.3,
 			TopP:        0.9,
-			MaxDiff:     4000,
 		},
 	}
 
@@ -97,12 +97,12 @@ func TestNewGenerator(t *testing.T) {
 	}
 	llmCfg := config.LLMConfig{
 		Provider: "ollama",
+		MaxDiff:  4000,
 		Ollama: config.OllamaConfig{
 			Model:       "llama3.2",
 			Host:        "http://localhost:11434",
 			Temperature: 0.3,
 			TopP:        0.9,
-			MaxDiff:     4000,
 		},
 	}
 

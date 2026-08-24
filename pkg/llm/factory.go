@@ -22,20 +22,3 @@ func NewProvider(cfg config.LLMConfig) (Provider, error) {
 		return nil, fmt.Errorf("unsupported provider: %s (supported: ollama, openai)", provider)
 	}
 }
-
-// GetMaxDiff returns the max diff size for the selected provider
-func GetMaxDiff(cfg config.LLMConfig) int {
-	provider := cfg.Provider
-	if provider == "" {
-		provider = "ollama"
-	}
-
-	switch ProviderType(provider) {
-	case ProviderOllama:
-		return cfg.Ollama.MaxDiff
-	case ProviderOpenAI:
-		return cfg.OpenAI.MaxDiff
-	default:
-		return 0
-	}
-}
