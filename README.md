@@ -4,21 +4,21 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/Kazuto/Weave)](https://goreportcard.com/report/github.com/Kazuto/Weave)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A CLI tool that automates Git workflows. Generate AI-powered commit messages and pull request descriptions using local LLMs, and create GitFlow-compliant branch names from Jira tickets.
+A CLI tool that automates Git workflows. Generate AI-powered commit messages and pull request descriptions using local or remote LLMs, and create GitFlow-compliant branch names from Jira tickets.
 
 ## Features
 
-- **AI Commit Messages** - Generate conventional commit messages from your staged changes using Ollama
+- **AI Commit Messages** - Generate conventional commit messages from your staged changes
 - **AI PR Descriptions** - Generate pull request descriptions from branch commits, with optional PR template support
 - **Smart Branch Names** - Create GitFlow-compliant branch names from Jira ticket information
-- **Local & Private** - All AI processing runs locally via Ollama, your code never leaves your machine
+- **Flexible LLM Support** - Use Ollama locally, any OpenAI-compatible API, or GitHub Copilot
 - **Configurable** - YAML configuration with sensible defaults and automatic validation
 - **Lightweight** - Single binary with zero runtime dependencies (besides Git)
 
 ## Prerequisites
 
 - **Git** - Required for all operations
-- **[Ollama](https://ollama.com)** - Required for AI commit message and PR description generation
+- An LLM provider (see [Configuration](#configuration))
 - **[Jira CLI](https://github.com/ankitpokhrel/jira-cli)** (optional) - For automatic ticket title fetching
 
 ## Installation
@@ -73,7 +73,7 @@ weave help
 weave <command> [options]
 
 Commands:
-  commit      Generate an AI-powered commit message using Ollama
+  commit      Generate an AI-powered commit message
   branch      Generate a branch name from a Jira ticket
   pr          Generate an AI-powered pull request description
   version     Show version information
@@ -82,7 +82,7 @@ Commands:
 
 ### Commit
 
-Generate a commit message from your staged changes using a local LLM.
+Generate a commit message from your staged changes.
 
 ```bash
 # Generate commit message for staged changes
@@ -98,17 +98,17 @@ weave commit --staged=false
 **Workflow:**
 
 1. Weave analyzes your staged diff and changed files
-2. Sends the diff to Ollama for commit message generation
+2. Sends the diff to your configured LLM provider
 3. Displays the generated message in Conventional Commits format
 4. Prompts you to accept (commits) or reject (copies to clipboard)
 
 **Example output:**
 
 ```
-✓ Checking Ollama connection
-✓ Checking if model 'llama3.2' is available
+✓ Checking openai connection
+✓ Checking if model 'claude-haiku-4.5' is available
 ▸ Found changes in 3 file(s)
-✓ Generating commit message using llama3.2
+✓ Generating commit message using claude-haiku-4.5
 
 ────────────────────────────────────────────────────────────
 Generated commit message:
@@ -184,7 +184,7 @@ weave pr -y
 1. Weave compares your current branch against the base branch
 2. Collects commits, changed files, and the diff between branches
 3. If a `PULL_REQUEST_TEMPLATE.md` exists in the repo, uses it as a structural guide
-4. Generates a PR description using Ollama
+4. Generates a PR description using your configured LLM provider
 5. Offers to open the GitHub PR creation page in your browser or copy to clipboard
 
 **Example output:**
@@ -193,7 +193,7 @@ weave pr -y
 ▸ Comparing feature/add-auth → main
 ▸ Found 3 commit(s) changing 5 file(s)
 ▸ Using PR template from repository
-✓ Generating PR description using llama3.2
+✓ Generating PR description using claude-haiku-4.5
 
 ────────────────────────────────────────────────────────────
 Generated PR description:
@@ -228,27 +228,21 @@ Weave automatically creates a configuration file at `~/.config/weave/config.yaml
 
 ```yaml
 branch:
-  max_length: 60 # Branch name max length (10-200)
-  default_type: feature # Default branch type
+  max_length: 60            # Branch name max length (10-200)
+  default_type: feature     # Default branch type
   types:
     feature: feature
     hotfix: hotfix
     refactor: refactor
     support: support
   sanitization:
-    separator: "-" # Replace spaces/special chars
-    lowercase: true # Convert to lowercase
-    remove_umlauts: false # Remove German umlauts
-  enable_gitflow: true # Enable gitflow branch naming
+    separator: "-"          # Replace spaces/special chars
+    lowercase: true         # Convert to lowercase
+    remove_umlauts: false   # Remove German umlauts
+  enable_gitflow: true      # Enable gitflow branch naming
 
 commit:
-  ollama:
-    model: llama3.2 # Ollama model to use
-    host: http://localhost:11434
-    temperature: 0.3 # Generation temperature (0-2)
-    top_p: 0.9 # Top-p sampling (0-1)
-    max_diff: 4000 # Max diff characters to send
-  types: # Conventional commit types
+  types:                    # Conventional commit types
     - feat
     - fix
     - docs
@@ -259,19 +253,39 @@ commit:
     - chore
     - ci
     - build
-  prompt: | # Custom prompt template
-    ...                       # Supports {{.Types}}, {{.Files}}, {{.Diff}}
+  prompt: |                 # Custom prompt template
+    ...                     # Supports {{.Types}}, {{.Files}}, {{.Diff}}, {{.RecentCommits}}
 
 pr:
-  default_base: "" # Base branch (empty = auto-detect main/master)
-  default_remote: "" # Target remote (empty = origin)
-  max_diff: 8000 # Max diff characters to send (100-100000)
-  prompt: | # Custom prompt template
-    ...                       # Supports {{.Branch}}, {{.Base}}, {{.Commits}},
-                              # {{.Files}}, {{.Diff}}, {{.Template}}
+  default_base: ""          # Base branch (empty = auto-detect main/master)
+  default_remote: ""        # Target remote (empty = origin)
+  prompt: |                 # Custom prompt template
+    ...                     # Supports {{.Branch}}, {{.Base}}, {{.Commits}},
+                            # {{.Files}}, {{.Diff}}, {{.Template}}
+
+llm:
+  provider: ollama          # "ollama" or "openai"
+  max_diff: 4000            # Max diff characters to send to the LLM (100-100000)
+  ollama:
+    model: llama3.2
+    host: http://localhost:11434
+    temperature: 0.3        # Generation temperature (0-2)
+    top_p: 0.9              # Top-p sampling (0-1)
+    timeout: 0              # Request timeout in seconds (0 = default 300s)
+  openai:
+    model: gpt-4o
+    host: http://localhost:1234/v1  # Any OpenAI-compatible endpoint
+    api_key: ""
+    temperature: 0.7
+    top_p: 0.9
+    timeout: 0
 ```
 
-### Setting Up Ollama
+### LLM Providers
+
+Weave supports two provider types: `ollama` for local models, and `openai` for any OpenAI-compatible API.
+
+#### Ollama (local)
 
 Install Ollama and pull a model:
 
@@ -282,9 +296,73 @@ brew install ollama
 # Start the Ollama server
 ollama serve
 
-# Pull the default model
+# Pull a model
 ollama pull llama3.2
 ```
+
+```yaml
+llm:
+  provider: ollama
+  max_diff: 4000
+  ollama:
+    model: llama3.2
+    host: http://localhost:11434
+    temperature: 0.3
+    top_p: 0.9
+```
+
+#### OpenAI
+
+```yaml
+llm:
+  provider: openai
+  max_diff: 4000
+  openai:
+    model: gpt-4o
+    host: https://api.openai.com/v1
+    api_key: sk-...
+    temperature: 0.7
+    top_p: 0.9
+```
+
+#### GitHub Copilot
+
+Use GitHub Copilot as your LLM provider with any model available on your plan. Requires a GitHub token with Copilot access (a PAT or the token from `gh auth token`).
+
+```yaml
+llm:
+  provider: openai
+  max_diff: 4000
+  openai:
+    model: claude-haiku-4.5
+    host: https://api.githubcopilot.com
+    api_key: <your_github_token>
+    temperature: 0.3
+    top_p: 0.9
+```
+
+Available Copilot models (as of August 2026) include `claude-haiku-4.5`, `claude-sonnet-4.6`, `claude-opus-4.6`, `gpt-4.1`, `gemini-3.6-flash`, and others. Check the available models for your account:
+
+```bash
+curl -s -H "Authorization: Bearer $(gh auth token)" \
+  https://api.githubcopilot.com/models | \
+  python3 -c "import json,sys; [print(m['id']) for m in json.load(sys.stdin)['data']]"
+```
+
+#### OpenAI-compatible local servers (LM Studio, llama.cpp)
+
+```yaml
+llm:
+  provider: openai
+  max_diff: 4000
+  openai:
+    model: your-model-name
+    host: http://localhost:1234/v1
+    temperature: 0.3
+    top_p: 0.9
+```
+
+> **Note:** Include `/v1` in the host for standard OpenAI-compatible servers. For GitHub Copilot, omit it — the API uses a different path structure.
 
 ### Setting Up Jira CLI (Optional)
 
@@ -336,21 +414,25 @@ make build
 
 ## Troubleshooting
 
-### "Cannot connect to Ollama"
+### "Cannot connect to provider"
 
-Ensure Ollama is running:
+For Ollama, ensure it is running:
 
 ```bash
 ollama serve
 ```
 
+For OpenAI-compatible providers, verify the host and API key are correct.
+
 ### "Model not available"
 
-Pull the configured model:
+For Ollama, pull the configured model:
 
 ```bash
 ollama pull llama3.2
 ```
+
+For GitHub Copilot, verify the model ID matches exactly what the API returns (e.g. `claude-sonnet-4.6`, not `claude-sonnet-4-6`).
 
 ### "No staged changes found"
 
