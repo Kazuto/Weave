@@ -52,7 +52,7 @@ func (g *Generator) CheckModel() bool {
 }
 
 func (g *Generator) Generate(diff string, files []string) (string, error) {
-	maxDiff := llm.GetMaxDiff(g.llmConfig)
+	maxDiff := g.llmConfig.MaxDiff
 	if maxDiff > 0 && len(diff) > maxDiff {
 		diff = diff[:maxDiff]
 	}

@@ -104,46 +104,49 @@ func ValidateAndFix(config *Config) *ValidationResult {
 		result.Fixed = true
 	}
 
-	// Validate and fix llm.ollama.model
-	if config.LLM.Ollama.Model == "" {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.model is empty, using default '%s'", defaults.LLM.Ollama.Model))
-		config.LLM.Ollama.Model = defaults.LLM.Ollama.Model
-		result.Fixed = true
+	// Validate and fix llm.ollama fields only when provider is ollama
+	if config.LLM.Provider == "ollama" || config.LLM.Provider == "" {
+		// Validate and fix llm.ollama.model
+		if config.LLM.Ollama.Model == "" {
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("llm.ollama.model is empty, using default '%s'", defaults.LLM.Ollama.Model))
+			config.LLM.Ollama.Model = defaults.LLM.Ollama.Model
+			result.Fixed = true
+		}
+
+		// Validate and fix llm.ollama.host
+		if config.LLM.Ollama.Host == "" {
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("llm.ollama.host is empty, using default '%s'", defaults.LLM.Ollama.Host))
+			config.LLM.Ollama.Host = defaults.LLM.Ollama.Host
+			result.Fixed = true
+		}
+
+		// Validate and fix llm.ollama.temperature
+		if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("llm.ollama.temperature %.2f is out of range (0-2), using default %.2f",
+					config.LLM.Ollama.Temperature, defaults.LLM.Ollama.Temperature))
+			config.LLM.Ollama.Temperature = defaults.LLM.Ollama.Temperature
+			result.Fixed = true
+		}
+
+		// Validate and fix llm.ollama.top_p
+		if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("llm.ollama.top_p %.2f is out of range (0-1), using default %.2f",
+					config.LLM.Ollama.TopP, defaults.LLM.Ollama.TopP))
+			config.LLM.Ollama.TopP = defaults.LLM.Ollama.TopP
+			result.Fixed = true
+		}
 	}
 
-	// Validate and fix llm.ollama.host
-	if config.LLM.Ollama.Host == "" {
+	// Validate and fix llm.max_diff
+	if config.LLM.MaxDiff < 100 || config.LLM.MaxDiff > 100000 {
 		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.host is empty, using default '%s'", defaults.LLM.Ollama.Host))
-		config.LLM.Ollama.Host = defaults.LLM.Ollama.Host
-		result.Fixed = true
-	}
-
-	// Validate and fix llm.ollama.temperature
-	if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.temperature %.2f is out of range (0-2), using default %.2f",
-				config.LLM.Ollama.Temperature, defaults.LLM.Ollama.Temperature))
-		config.LLM.Ollama.Temperature = defaults.LLM.Ollama.Temperature
-		result.Fixed = true
-	}
-
-	// Validate and fix llm.ollama.top_p
-	if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.top_p %.2f is out of range (0-1), using default %.2f",
-				config.LLM.Ollama.TopP, defaults.LLM.Ollama.TopP))
-		config.LLM.Ollama.TopP = defaults.LLM.Ollama.TopP
-		result.Fixed = true
-	}
-
-	// Validate and fix llm.ollama.max_diff
-	if config.LLM.Ollama.MaxDiff < 100 || config.LLM.Ollama.MaxDiff > 100000 {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("llm.ollama.max_diff %d is out of range (100-100000), using default %d",
-				config.LLM.Ollama.MaxDiff, defaults.LLM.Ollama.MaxDiff))
-		config.LLM.Ollama.MaxDiff = defaults.LLM.Ollama.MaxDiff
+			fmt.Sprintf("llm.max_diff %d is out of range (100-100000), using default %d",
+				config.LLM.MaxDiff, defaults.LLM.MaxDiff))
+		config.LLM.MaxDiff = defaults.LLM.MaxDiff
 		result.Fixed = true
 	}
 
@@ -158,15 +161,6 @@ func ValidateAndFix(config *Config) *ValidationResult {
 	if config.Commit.Prompt == "" {
 		result.Warnings = append(result.Warnings, "commit.prompt is empty, using default")
 		config.Commit.Prompt = defaults.Commit.Prompt
-		result.Fixed = true
-	}
-
-	// Validate and fix pr.max_diff
-	if config.PR.MaxDiff < 100 || config.PR.MaxDiff > 100000 {
-		result.Warnings = append(result.Warnings,
-			fmt.Sprintf("pr.max_diff %d is out of range (100-100000), using default %d",
-				config.PR.MaxDiff, defaults.PR.MaxDiff))
-		config.PR.MaxDiff = defaults.PR.MaxDiff
 		result.Fixed = true
 	}
 
@@ -229,29 +223,32 @@ func ValidateStrict(config *Config) error {
 		}
 	}
 
-	// Validate llm.ollama.model
-	if config.LLM.Ollama.Model == "" {
-		return fmt.Errorf("llm.ollama.model cannot be empty")
-	}
+	// Validate ollama fields only when provider is ollama
+	if config.LLM.Provider == "ollama" || config.LLM.Provider == "" {
+		// Validate llm.ollama.model
+		if config.LLM.Ollama.Model == "" {
+			return fmt.Errorf("llm.ollama.model cannot be empty")
+		}
 
-	// Validate llm.ollama.host
-	if config.LLM.Ollama.Host == "" {
-		return fmt.Errorf("llm.ollama.host cannot be empty")
-	}
+		// Validate llm.ollama.host
+		if config.LLM.Ollama.Host == "" {
+			return fmt.Errorf("llm.ollama.host cannot be empty")
+		}
 
-	// Validate llm.ollama.temperature
-	if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
-		return fmt.Errorf("llm.ollama.temperature must be between 0 and 2")
-	}
+		// Validate llm.ollama.temperature
+		if config.LLM.Ollama.Temperature < 0 || config.LLM.Ollama.Temperature > 2 {
+			return fmt.Errorf("llm.ollama.temperature must be between 0 and 2")
+		}
 
-	// Validate llm.ollama.top_p
-	if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
-		return fmt.Errorf("llm.ollama.top_p must be between 0 and 1")
+		// Validate llm.ollama.top_p
+		if config.LLM.Ollama.TopP < 0 || config.LLM.Ollama.TopP > 1 {
+			return fmt.Errorf("llm.ollama.top_p must be between 0 and 1")
+		}
 	}
 
 	// Validate llm.ollama.max_diff
-	if config.LLM.Ollama.MaxDiff < 100 || config.LLM.Ollama.MaxDiff > 100000 {
-		return fmt.Errorf("llm.ollama.max_diff must be between 100 and 100000")
+	if config.LLM.MaxDiff < 100 || config.LLM.MaxDiff > 100000 {
+		return fmt.Errorf("llm.max_diff must be between 100 and 100000")
 	}
 
 	// Validate commit.types
@@ -262,11 +259,6 @@ func ValidateStrict(config *Config) error {
 	// Validate commit.prompt
 	if config.Commit.Prompt == "" {
 		return fmt.Errorf("commit.prompt cannot be empty")
-	}
-
-	// Validate pr.max_diff
-	if config.PR.MaxDiff < 100 || config.PR.MaxDiff > 100000 {
-		return fmt.Errorf("pr.max_diff must be between 100 and 100000")
 	}
 
 	// Validate pr.prompt

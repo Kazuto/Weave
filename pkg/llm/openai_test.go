@@ -13,7 +13,6 @@ func TestNewOpenAIClient(t *testing.T) {
 		APIKey:      "",
 		Temperature: 0.3,
 		TopP:        0.9,
-		MaxDiff:     4000,
 	}
 
 	client := NewOpenAIClient(cfg)

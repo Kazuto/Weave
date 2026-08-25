@@ -10,7 +10,6 @@ type Config struct {
 type PRConfig struct {
 	DefaultBase   string `yaml:"default_base"`
 	DefaultRemote string `yaml:"default_remote"`
-	MaxDiff       int    `yaml:"max_diff"`
 	Prompt        string `yaml:"prompt"`
 }
 
@@ -26,7 +25,6 @@ type OllamaConfig struct {
 	Host        string  `yaml:"host"`
 	Temperature float64 `yaml:"temperature"`
 	TopP        float64 `yaml:"top_p"`
-	MaxDiff     int     `yaml:"max_diff"`
 	Timeout     int     `yaml:"timeout"` // Request timeout in seconds (0 = use default)
 }
 
@@ -36,12 +34,12 @@ type OpenAIConfig struct {
 	APIKey      string  `yaml:"api_key"`
 	Temperature float64 `yaml:"temperature"`
 	TopP        float64 `yaml:"top_p"`
-	MaxDiff     int     `yaml:"max_diff"`
 	Timeout     int     `yaml:"timeout"` // Request timeout in seconds (0 = use default)
 }
 
 type LLMConfig struct {
 	Provider string       `yaml:"provider"` // "ollama" or "openai"
+	MaxDiff  int          `yaml:"max_diff"`
 	Ollama   OllamaConfig `yaml:"ollama"`
 	OpenAI   OpenAIConfig `yaml:"openai"`
 }

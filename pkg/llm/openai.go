@@ -54,9 +54,17 @@ func NewOpenAIClient(cfg config.OpenAIConfig) *OpenAIClient {
 	}
 }
 
+// baseURL returns the host with any trailing slash stripped.
+// Paths are appended directly, so users include /v1 in host if needed
+// (e.g. "http://localhost:1234/v1") or omit it for APIs like GitHub Copilot
+// (e.g. "https://api.githubcopilot.com").
+func (c *OpenAIClient) baseURL() string {
+	return strings.TrimRight(c.config.Host, "/")
+}
+
 func (c *OpenAIClient) CheckConnection() bool {
 	client := &http.Client{Timeout: 5 * time.Second}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/models", c.config.Host), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/models", c.baseURL()), nil)
 	if err != nil {
 		return false
 	}
@@ -75,7 +83,7 @@ func (c *OpenAIClient) CheckConnection() bool {
 
 func (c *OpenAIClient) IsModelAvailable() bool {
 	client := &http.Client{Timeout: 5 * time.Second}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/models", c.config.Host), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/models", c.baseURL()), nil)
 	if err != nil {
 		return false
 	}
@@ -122,7 +130,7 @@ func (c *OpenAIClient) Generate(prompt string) (string, error) {
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/chat/completions", c.config.Host), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/chat/completions", c.baseURL()), bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}

@@ -9,11 +9,11 @@ import (
 
 func TestNewGenerator(t *testing.T) {
 	prCfg := config.PRConfig{
-		MaxDiff: 8000,
-		Prompt:  "test prompt",
+		Prompt: "test prompt",
 	}
 	llmCfg := config.LLMConfig{
 		Provider: "ollama",
+		MaxDiff:  8000,
 		Ollama: config.OllamaConfig{
 			Model: "llama3.2",
 			Host:  "http://localhost:11434",
@@ -33,18 +33,18 @@ func TestNewGenerator(t *testing.T) {
 		t.Error("Generator should have provider")
 	}
 
-	if g.config.MaxDiff != 8000 {
-		t.Errorf("Generator MaxDiff = %d, want 8000", g.config.MaxDiff)
+	if g.llmConfig.MaxDiff != 8000 {
+		t.Errorf("Generator MaxDiff = %d, want 8000", g.llmConfig.MaxDiff)
 	}
 }
 
 func TestGenerator_buildPrompt(t *testing.T) {
 	prCfg := config.PRConfig{
-		MaxDiff: 8000,
-		Prompt:  "Branch: {{.Branch}} → {{.Base}}\nCommits:\n{{.Commits}}\nFiles:\n{{.Files}}\nDiff:\n{{.Diff}}",
+		Prompt: "Branch: {{.Branch}} → {{.Base}}\nCommits:\n{{.Commits}}\nFiles:\n{{.Files}}\nDiff:\n{{.Diff}}",
 	}
 	llmCfg := config.LLMConfig{
 		Provider: "ollama",
+		MaxDiff:  8000,
 		Ollama: config.OllamaConfig{
 			Model: "llama3.2",
 			Host:  "http://localhost:11434",
@@ -86,11 +86,11 @@ func TestGenerator_buildPrompt(t *testing.T) {
 
 func TestGenerator_buildPrompt_WithTemplate(t *testing.T) {
 	prCfg := config.PRConfig{
-		MaxDiff: 8000,
-		Prompt:  "{{if .Template}}Use template:\n{{.Template}}{{else}}Default format{{end}}\nBranch: {{.Branch}}",
+		Prompt: "{{if .Template}}Use template:\n{{.Template}}{{else}}Default format{{end}}\nBranch: {{.Branch}}",
 	}
 	llmCfg := config.LLMConfig{
 		Provider: "ollama",
+		MaxDiff:  8000,
 		Ollama: config.OllamaConfig{
 			Model: "llama3.2",
 			Host:  "http://localhost:11434",
