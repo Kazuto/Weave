@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Kazuto/Weave/pkg/branch"
+	"github.com/Kazuto/Weave/pkg/cherrypick"
 	"github.com/Kazuto/Weave/pkg/commit"
 	"github.com/Kazuto/Weave/pkg/config"
 	"github.com/Kazuto/Weave/pkg/pr"
@@ -27,6 +28,8 @@ func main() {
 	switch os.Args[1] {
 	case "commit":
 		runCommit(os.Args[2:])
+	case "cherrypick":
+		runCherrypick(os.Args[2:])
 	case "branch":
 		runBranch(os.Args[2:])
 	case "pr":
@@ -52,6 +55,7 @@ Commands:
   commit      Generate an AI-powered commit message using Ollama
   branch      Generate a branch name from a Jira ticket
   pr          Generate an AI-powered pull request description
+  cherrypick  Automate production branch creation and cherry-picking
   version     Show version information
   help        Show this help message
 
@@ -551,6 +555,102 @@ func runPR(args []string) {
 		}
 		fmt.Println(ui.FormatInfo("PR description copied to clipboard!"))
 	}
+}
+
+func runCherrypick(args []string) {
+	fs := flag.NewFlagSet("cherrypick", flag.ExitOnError)
+	staging := fs.String("staging", "", "Staging branch to search for commits (required)")
+	fs.StringVar(staging, "s", "", "Staging branch (shorthand)")
+	ticket := fs.String("ticket", "", "Manual ticket ID override")
+	fs.StringVar(ticket, "t", "", "Ticket ID (shorthand)")
+	base := fs.String("base", "", "Base branch to branch from")
+	fs.StringVar(base, "b", "", "Base branch (shorthand)")
+	yes := fs.Bool("yes", false, "Skip confirmation")
+	fs.BoolVar(yes, "y", false, "Skip confirmation (shorthand)")
+	_ = fs.Parse(args)
+
+	if *staging == "" {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Staging branch is required"))
+		fmt.Fprintln(os.Stderr, "Usage: weave cherrypick -s <staging-branch> [-t <ticket-id>] [-b <base-branch>] [-y]")
+		os.Exit(1)
+	}
+
+	if !commit.IsGitAvailable() {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Git is not installed or not in PATH"))
+		os.Exit(1)
+	}
+
+	if !commit.IsGitRepository() {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Not a git repository"))
+		os.Exit(1)
+	}
+
+	// Resolve ticket ID
+	ticketID := *ticket
+	if ticketID == "" {
+		curr, err := cherrypick.GetCurrentBranch()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error getting current branch: %v", err)))
+			os.Exit(1)
+		}
+		ticketID = cherrypick.ExtractTicketID(curr)
+	}
+
+	if ticketID == "" {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Could not determine ticket ID. Please provide it with -t"))
+		os.Exit(1)
+	}
+
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Cherry-picking commits for ticket %s from %s", ticketID, *staging)))
+
+	// Find commits
+	commits, err := cherrypick.FindTicketCommits(*staging, ticketID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error finding commits: %v", err)))
+		os.Exit(1)
+	}
+
+	if len(commits) == 0 {
+		fmt.Println(ui.FormatWarning(fmt.Sprintf("No commits found for ticket %s on branch %s", ticketID, *staging)))
+		return
+	}
+
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Found %d commit(s) to cherry-pick", len(commits))))
+
+	// Resolve base branch
+	baseBranch := *base
+	if baseBranch == "" {
+		baseBranch = cherrypick.DetectBaseBranch()
+	}
+
+	prodBranch := fmt.Sprintf("%s-prod", ticketID)
+
+	if !*yes {
+		confirmed, err := ui.Confirm(fmt.Sprintf("Create branch %s from %s and cherry-pick %d commits?", prodBranch, baseBranch, len(commits)), false)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
+			os.Exit(1)
+		}
+		if !confirmed {
+			fmt.Println(ui.FormatInfo("Operation cancelled"))
+			return
+		}
+	}
+
+	// Execute
+	spin := spinner.New("Cherry-picking commits")
+	spin.Start()
+
+	if err := cherrypick.ExecuteCherrypick(baseBranch, prodBranch, commits); err != nil {
+		spin.Stop(false)
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cherry-pick failed: %v", err)))
+
+		os.Exit(1)
+	}
+
+	spin.Stop(true)
+
+	fmt.Println(ui.FormatSuccess(fmt.Sprintf("Successfully created %s and cherry-picked %d commits!", prodBranch, len(commits))))
 }
 
 func promptBranchType(types map[string]string, defaultType string) string {

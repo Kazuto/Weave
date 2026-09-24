@@ -32,7 +32,7 @@ func (s *Sanitizer) Sanitize(input string, options SanitizationOptions) string {
 	// Remove quotes, parentheses, colons, brackets, and other problematic characters
 	result = strings.ReplaceAll(result, "/", " ")
 	result = strings.ReplaceAll(result, "\\", " ")
-	result = regexp.MustCompile(`["\(\)\[\]{}:;,<>?|*&^%$#@!~` + "`" + `]`).ReplaceAllString(result, "")
+	result = regexp.MustCompile(`["\(\)\[\]{}:;,<>?|*&^%$#@!~`+"`"+`]`).ReplaceAllString(result, "")
 
 	separator := options.Separator
 	if separator == "" {
