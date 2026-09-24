@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -81,6 +82,9 @@ func Confirm(prompt string, defaultValue bool) (bool, error) {
 	}
 
 	cmd := exec.Command("gum", args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
@@ -110,6 +114,8 @@ func Choose(prompt string, options []string, defaultValue string, multi bool) (s
 	args = append(args, options...)
 
 	cmd := exec.Command("gum", args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 130 {
@@ -140,6 +146,8 @@ func Input(prompt string, placeholder string) (string, error) {
 	}
 
 	cmd := exec.Command("gum", args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err

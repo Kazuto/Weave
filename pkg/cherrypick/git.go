@@ -2,30 +2,37 @@ package cherrypick
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 )
 
 // ExecuteCherrypick performs the full process of updating the base branch, creating a new branch, and cherry-picking commits.
 func ExecuteCherrypick(baseBranch, prodBranch string, commits []string) error {
 	// Fetch and pull latest changes for base branch
-
+	
 	// git checkout baseBranch
 	checkoutBase := exec.Command("git", "checkout", baseBranch)
-	if output, err := checkoutBase.CombinedOutput(); err != nil {
-		return fmt.Errorf("Failed to checkout base branch %s: %s (%w)", baseBranch, string(output), err)
+	checkoutBase.Stdout = os.Stdout
+	checkoutBase.Stderr = os.Stderr
+	if err := checkoutBase.Run(); err != nil {
+		return fmt.Errorf("Failed to checkout base branch %s: %w", baseBranch, err)
 	}
 
 	// git pull origin baseBranch (assuming origin)
 	pullBase := exec.Command("git", "pull", "origin", baseBranch)
-	if output, err := pullBase.CombinedOutput(); err != nil {
-		return fmt.Errorf("Failed to pull latest changes for %s: %s (%w)", baseBranch, string(output), err)
+	pullBase.Stdout = os.Stdout
+	pullBase.Stderr = os.Stderr
+	if err := pullBase.Run(); err != nil {
+		return fmt.Errorf("Failed to pull latest changes for %s: %w", baseBranch, err)
 	}
 
 	// Create prod branch from updated base
 	args := []string{"checkout", "-b", prodBranch, baseBranch}
 	cmd := exec.Command("git", args...)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("Failed to create branch %s from %s: %s (%w)", prodBranch, baseBranch, string(output), err)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Failed to create branch %s from %s: %w", prodBranch, baseBranch, err)
 	}
 
 	return CherryPickCommits(commits)
@@ -49,10 +56,15 @@ func CherryPickCommits(commits []string) error {
 		return nil
 	}
 
-	args := append([]string{"cherry-pick"}, commits...)
-	cmd := exec.Command("git", args...)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("Cherry-pick failed: %s (%w)", string(output), err)
+	for _, sha := range commits {
+		args := append([]string{"cherry-pick"}, sha)
+		cmd := exec.Command("git", args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Cherry-pick failed at commit %s: %w", sha, err)
+		}
 	}
 	return nil
 }

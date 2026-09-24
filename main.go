@@ -567,6 +567,8 @@ func runCherrypick(args []string) {
 	fs.StringVar(base, "b", "", "Base branch (shorthand)")
 	yes := fs.Bool("yes", false, "Skip confirmation")
 	fs.BoolVar(yes, "y", false, "Skip confirmation (shorthand)")
+	limit := fs.Int("limit", 0, "Limit the number of commits to search for")
+	fs.IntVar(limit, "l", 0, "Limit the number of commits to search for (shorthand)")
 	_ = fs.Parse(args)
 
 	if *staging == "" {
@@ -597,21 +599,32 @@ func runCherrypick(args []string) {
 	}
 
 	if ticketID == "" {
-		fmt.Fprintln(os.Stderr, ui.FormatError("Could not determine ticket ID. Please provide it with -t"))
+		fmt.Fprintln(os.Stderr, ui.FormatError("Could not determine ticket ID. Please provide it with -t or switch to the branch containing the ticket ID"))
 		os.Exit(1)
 	}
 
-	fmt.Println(ui.FormatInfo(fmt.Sprintf("Cherry-picking commits for ticket %s from %s", ticketID, *staging)))
+	// Resolve base branch
+	baseBranch := *base
+	if baseBranch == "" {
+		baseBranch = cherrypick.DetectBaseBranch()
+	}
 
-	// Find commits
-	shas, messages, err := cherrypick.GetCommitsWithMessages(*staging, ticketID)
+	if baseBranch == "" {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Could not detect base branch (main/master/prod). Please provide it with -b"))
+		os.Exit(1)
+	}
+
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Comparing %s → %s", baseBranch, *staging)))
+
+	// Find commits on staging but not on base
+	shas, messages, err := cherrypick.GetCommitsBetween(baseBranch, *staging, *limit)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error finding commits: %v", err)))
 		os.Exit(1)
 	}
 
 	if len(shas) == 0 {
-		fmt.Println(ui.FormatWarning(fmt.Sprintf("No commits found for ticket %s on branch %s", ticketID, *staging)))
+		fmt.Println(ui.FormatWarning(fmt.Sprintf("No commits found on %s that are not on %s", *staging, baseBranch)))
 		return
 	}
 
@@ -655,13 +668,12 @@ func runCherrypick(args []string) {
 		}
 	}
 
-	fmt.Println(ui.FormatInfo(fmt.Sprintf("Selected %d commit(s) to cherry-pick", len(commitsToPick))))
-
-	// Resolve base branch
-	baseBranch := *base
-	if baseBranch == "" {
-		baseBranch = cherrypick.DetectBaseBranch()
+	if len(commitsToPick) == 0 {
+		fmt.Println(ui.FormatInfo("No commits selected. Operation cancelled"))
+		return
 	}
+
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Selected %d commit(s) to cherry-pick", len(commitsToPick))))
 
 	prodBranch := fmt.Sprintf("%s-prod", ticketID)
 
@@ -678,17 +690,11 @@ func runCherrypick(args []string) {
 	}
 
 	// Execute
-	spin := spinner.New("Cherry-picking commits")
-	spin.Start()
-
 	if err := cherrypick.ExecuteCherrypick(baseBranch, prodBranch, commitsToPick); err != nil {
-		spin.Stop(false)
 		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cherry-pick failed: %v", err)))
 
 		os.Exit(1)
 	}
-
-	spin.Stop(true)
 
 	fmt.Println(ui.FormatSuccess(fmt.Sprintf("Successfully created %s and cherry-picked %d commits!", prodBranch, len(commitsToPick))))
 }

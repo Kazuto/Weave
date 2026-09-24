@@ -60,11 +60,39 @@ func GetCommitsWithMessages(stagingBranch, ticketID string) ([]string, []string,
 		}
 	}
 
-	// Reverse to get chronological order
-	for i, j := 0, len(shas)-1; i < j; i, j = i+1, j-1 {
-		shas[i], shas[j] = shas[j], shas[i]
-		messages[i], messages[j] = messages[j], messages[i]
+	// No need to reverse; git log is newest to oldest by default.
+	// We remove the reversal loop to maintain newest-to-oldest order.
+	return shas, messages, nil
+}
+
+// GetCommitsBetween branches finds all commit SHAs and their messages that are on the staging branch but not on the base branch, ignoring commits that are already present on the base branch (cherry-picks).
+func GetCommitsBetween(baseBranch, stagingBranch string, limit int) ([]string, []string, error) {
+	// git log baseBranch...stagingBranch --cherry-pick --right-only --no-merges --format="%H|%s"
+	args := []string{"log", fmt.Sprintf("%s...%s", baseBranch, stagingBranch), "--cherry-pick", "--right-only", "--no-merges", "--format=%H|%s"}
+	if limit > 0 {
+		args = append(args, fmt.Sprintf("-n %d", limit))
+	}
+	cmd := exec.Command("git", args...)
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to find commits between %s and %s: %w", baseBranch, stagingBranch, err)
 	}
 
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	var shas []string
+	var messages []string
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "|", 2)
+		if len(parts) == 2 {
+			shas = append(shas, parts[0])
+			messages = append(messages, parts[1])
+		}
+	}
+
+	// No need to reverse; git log is newest to oldest by default.
+	// We remove the reversal loop to maintain newest-to-oldest order.
 	return shas, messages, nil
 }
