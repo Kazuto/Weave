@@ -535,7 +535,7 @@ func runPR(args []string) {
 		options = []string{"Copy to clipboard", "Do nothing"}
 	}
 
-	choice, err := ui.Choose("What would you like to do?", options, "")
+	choice, err := ui.Choose("What would you like to do?", options, "", false)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
 		os.Exit(1)
@@ -604,18 +604,58 @@ func runCherrypick(args []string) {
 	fmt.Println(ui.FormatInfo(fmt.Sprintf("Cherry-picking commits for ticket %s from %s", ticketID, *staging)))
 
 	// Find commits
-	commits, err := cherrypick.FindTicketCommits(*staging, ticketID)
+	shas, messages, err := cherrypick.GetCommitsWithMessages(*staging, ticketID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error finding commits: %v", err)))
 		os.Exit(1)
 	}
 
-	if len(commits) == 0 {
+	if len(shas) == 0 {
 		fmt.Println(ui.FormatWarning(fmt.Sprintf("No commits found for ticket %s on branch %s", ticketID, *staging)))
 		return
 	}
 
-	fmt.Println(ui.FormatInfo(fmt.Sprintf("Found %d commit(s) to cherry-pick", len(commits))))
+	// Interactive commit selection
+	var options []string
+	for i := 0; i < len(shas); i++ {
+		options = append(options, fmt.Sprintf("[%s] %s", shas[i][:7], messages[i]))
+	}
+	options = append(options, "All")
+
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Found %d commit(s). Please select the ones to cherry-pick:", len(shas))))
+	
+	selection, err := ui.Choose("Select commits to cherry-pick", options, "", true)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
+		os.Exit(1)
+	}
+
+	var commitsToPick []string
+	if selection == "" {
+		fmt.Println(ui.FormatInfo("No commits selected. Operation cancelled"))
+		return
+	}
+
+	selectedLines := strings.Split(selection, "\n")
+	for _, line := range selectedLines {
+		if line == "All" {
+			commitsToPick = shas
+			break
+		}
+		parts := strings.Split(line, " ")
+		if len(parts) == 0 {
+			continue
+		}
+		shaPart := strings.Trim(parts[0], "[]")
+		for _, s := range shas {
+			if strings.HasPrefix(s, shaPart) {
+				commitsToPick = append(commitsToPick, s)
+				break
+			}
+		}
+	}
+
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Selected %d commit(s) to cherry-pick", len(commitsToPick))))
 
 	// Resolve base branch
 	baseBranch := *base
@@ -626,7 +666,7 @@ func runCherrypick(args []string) {
 	prodBranch := fmt.Sprintf("%s-prod", ticketID)
 
 	if !*yes {
-		confirmed, err := ui.Confirm(fmt.Sprintf("Create branch %s from %s and cherry-pick %d commits?", prodBranch, baseBranch, len(commits)), false)
+		confirmed, err := ui.Confirm(fmt.Sprintf("Create branch %s from %s and cherry-pick %d commits?", prodBranch, baseBranch, len(commitsToPick)), false)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
 			os.Exit(1)
@@ -641,7 +681,7 @@ func runCherrypick(args []string) {
 	spin := spinner.New("Cherry-picking commits")
 	spin.Start()
 
-	if err := cherrypick.ExecuteCherrypick(baseBranch, prodBranch, commits); err != nil {
+	if err := cherrypick.ExecuteCherrypick(baseBranch, prodBranch, commitsToPick); err != nil {
 		spin.Stop(false)
 		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cherry-pick failed: %v", err)))
 
@@ -650,7 +690,7 @@ func runCherrypick(args []string) {
 
 	spin.Stop(true)
 
-	fmt.Println(ui.FormatSuccess(fmt.Sprintf("Successfully created %s and cherry-picked %d commits!", prodBranch, len(commits))))
+	fmt.Println(ui.FormatSuccess(fmt.Sprintf("Successfully created %s and cherry-picked %d commits!", prodBranch, len(commitsToPick))))
 }
 
 func promptBranchType(types map[string]string, defaultType string) string {
@@ -659,7 +699,7 @@ func promptBranchType(types map[string]string, defaultType string) string {
 		typeList = append(typeList, key)
 	}
 
-	choice, err := ui.Choose("Select branch type:", typeList, defaultType)
+	choice, err := ui.Choose("Select branch type:", typeList, defaultType, false)
 	if err != nil {
 		fmt.Println(ui.FormatError(fmt.Sprintf("Error selecting branch type, using default: %s", defaultType)))
 		return defaultType

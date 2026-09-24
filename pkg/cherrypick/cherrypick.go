@@ -27,31 +27,44 @@ func ExtractTicketID(input string) string {
 
 // FindTicketCommits finds all commit SHAs on the staging branch that contain the ticket ID in their message.
 func FindTicketCommits(stagingBranch, ticketID string) ([]string, error) {
-	return GetCommitsByTicket(stagingBranch, ticketID)
+	shas, _, err := GetCommitsWithMessages(stagingBranch, ticketID)
+	return shas, err
 }
 
 // GetCommitsByTicket finds all commit SHAs on the staging branch that contain the ticket ID in their message.
 func GetCommitsByTicket(stagingBranch, ticketID string) ([]string, error) {
-	// git log stagingBranch --grep="TICKET-ID" --format=%H
-	args := []string{"log", stagingBranch, fmt.Sprintf("--grep=%s", ticketID), "--format=%H"}
+	return FindTicketCommits(stagingBranch, ticketID)
+}
+
+// GetCommitsWithMessages finds all commit SHAs and their messages on the staging branch that contain the ticket ID.
+func GetCommitsWithMessages(stagingBranch, ticketID string) ([]string, []string, error) {
+	// git log stagingBranch --grep="TICKET-ID" --format="%H|%s"
+	args := []string{"log", stagingBranch, fmt.Sprintf("--grep=%s", ticketID), "--format=%H|%s"}
 	cmd := exec.Command("git", args...)
 	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to find commits for ticket %s on branch %s: %w", ticketID, stagingBranch, err)
+		return nil, nil, fmt.Errorf("Failed to find commits for ticket %s on branch %s: %w", ticketID, stagingBranch, err)
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	var commits []string
+	var shas []string
+	var messages []string
 	for _, line := range lines {
-		if line != "" {
-			commits = append(commits, line)
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "|", 2)
+		if len(parts) == 2 {
+			shas = append(shas, parts[0])
+			messages = append(messages, parts[1])
 		}
 	}
 
-	// Git log returns most recent first, but cherry-pick needs them in chronological order.
-	for i, j := 0, len(commits)-1; i < j; i, j = i+1, j-1 {
-		commits[i], commits[j] = commits[j], commits[i]
+	// Reverse to get chronological order
+	for i, j := 0, len(shas)-1; i < j; i, j = i+1, j-1 {
+		shas[i], shas[j] = shas[j], shas[i]
+		messages[i], messages[j] = messages[j], messages[i]
 	}
 
-	return commits, nil
+	return shas, messages, nil
 }
