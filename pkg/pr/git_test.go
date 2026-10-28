@@ -252,6 +252,27 @@ func TestParseGitHubRepo(t *testing.T) {
 			wantOk:    false,
 		},
 		{
+			name:      "SSH host alias resolving to github.com",
+			remoteURL: "git@github-kazuto:Kazuto/Weave.git",
+			wantOwner: "Kazuto",
+			wantRepo:  "Weave",
+			wantOk:    true,
+		},
+		{
+			name:      "SSH host alias resolving elsewhere",
+			remoteURL: "git@gitlab-work:user/repo.git",
+			wantOwner: "",
+			wantRepo:  "",
+			wantOk:    false,
+		},
+		{
+			name:      "Non-GitHub SSH URL",
+			remoteURL: "git@gitlab.com:user/repo.git",
+			wantOwner: "",
+			wantRepo:  "",
+			wantOk:    false,
+		},
+		{
 			name:      "Invalid URL",
 			remoteURL: "not-a-url",
 			wantOwner: "",
@@ -265,6 +286,19 @@ func TestParseGitHubRepo(t *testing.T) {
 			wantRepo:  "",
 			wantOk:    false,
 		},
+	}
+
+	origResolve := resolveSSHHost
+	t.Cleanup(func() { resolveSSHHost = origResolve })
+	resolveSSHHost = func(host string) string {
+		aliases := map[string]string{
+			"github-kazuto": "github.com",
+			"gitlab-work":   "gitlab.com",
+		}
+		if name, found := aliases[host]; found {
+			return name
+		}
+		return host
 	}
 
 	for _, tt := range tests {
