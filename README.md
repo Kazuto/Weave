@@ -254,7 +254,7 @@ commit:
     - ci
     - build
   prompt: |                 # Custom prompt template
-    ...                     # Supports {{.Types}}, {{.Files}}, {{.Diff}}, {{.RecentCommits}}
+    ...                     # Supports {{.Branch}}, {{.Types}}, {{.Files}}, {{.Diff}}, {{.RecentCommits}}
 
 pr:
   default_base: ""          # Base branch (empty = auto-detect main/master)
