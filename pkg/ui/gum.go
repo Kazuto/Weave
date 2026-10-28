@@ -81,7 +81,7 @@ func Confirm(prompt string, defaultValue bool) (bool, error) {
 		args = append(args, "--default=false")
 	}
 
-	cmd := exec.Command("gum", args...)
+	cmd := exec.Command("gum", args...) // #nosec G204 -- args are passed directly to gum, not interpreted by a shell
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
