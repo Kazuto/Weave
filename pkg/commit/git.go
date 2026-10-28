@@ -18,6 +18,15 @@ func IsGitRepository() bool {
 	return cmd.Run() == nil
 }
 
+// GetCurrentBranch returns the current branch name, or an empty string for a detached HEAD.
+func GetCurrentBranch() (string, error) {
+	output, err := exec.Command("git", "branch", "--show-current").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 func GetDiff(staged bool) (string, error) {
 	var cmd *exec.Cmd
 	if staged {

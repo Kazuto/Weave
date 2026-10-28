@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Kazuto/Weave/pkg/branch"
+	"github.com/Kazuto/Weave/pkg/cherrypick"
 	"github.com/Kazuto/Weave/pkg/commit"
 	"github.com/Kazuto/Weave/pkg/config"
 	"github.com/Kazuto/Weave/pkg/pr"
@@ -27,6 +28,8 @@ func main() {
 	switch os.Args[1] {
 	case "commit":
 		runCommit(os.Args[2:])
+	case "cherrypick":
+		runCherrypick(os.Args[2:])
 	case "branch":
 		runBranch(os.Args[2:])
 	case "pr":
@@ -52,6 +55,7 @@ Commands:
   commit      Generate an AI-powered commit message using Ollama
   branch      Generate a branch name from a Jira ticket
   pr          Generate an AI-powered pull request description
+  cherrypick  Automate production branch creation and cherry-picking
   version     Show version information
   help        Show this help message
 
@@ -531,7 +535,7 @@ func runPR(args []string) {
 		options = []string{"Copy to clipboard", "Do nothing"}
 	}
 
-	choice, err := ui.Choose("What would you like to do?", options, "")
+	choice, err := ui.Choose("What would you like to do?", options, "", false)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
 		os.Exit(1)
@@ -553,13 +557,155 @@ func runPR(args []string) {
 	}
 }
 
+func runCherrypick(args []string) {
+	fs := flag.NewFlagSet("cherrypick", flag.ExitOnError)
+	staging := fs.String("staging", "", "Staging branch to search for commits (required)")
+	fs.StringVar(staging, "s", "", "Staging branch (shorthand)")
+	ticket := fs.String("ticket", "", "Manual ticket ID override")
+	fs.StringVar(ticket, "t", "", "Ticket ID (shorthand)")
+	base := fs.String("base", "", "Base branch to branch from")
+	fs.StringVar(base, "b", "", "Base branch (shorthand)")
+	yes := fs.Bool("yes", false, "Skip confirmation")
+	fs.BoolVar(yes, "y", false, "Skip confirmation (shorthand)")
+	limit := fs.Int("limit", 0, "Limit the number of commits to search for")
+	fs.IntVar(limit, "l", 0, "Limit the number of commits to search for (shorthand)")
+	_ = fs.Parse(args)
+
+	if *staging == "" {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Staging branch is required"))
+		fmt.Fprintln(os.Stderr, "Usage: weave cherrypick -s <staging-branch> [-t <ticket-id>] [-b <base-branch>] [-y]")
+		os.Exit(1)
+	}
+
+	if !commit.IsGitAvailable() {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Git is not installed or not in PATH"))
+		os.Exit(1)
+	}
+
+	if !commit.IsGitRepository() {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Not a git repository"))
+		os.Exit(1)
+	}
+
+	// Resolve ticket ID
+	ticketID := *ticket
+	if ticketID == "" {
+		curr, err := cherrypick.GetCurrentBranch()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error getting current branch: %v", err)))
+			os.Exit(1)
+		}
+		ticketID = cherrypick.ExtractTicketID(curr)
+	}
+
+	if ticketID == "" {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Could not determine ticket ID. Please provide it with -t or switch to the branch containing the ticket ID"))
+		os.Exit(1)
+	}
+
+	// Resolve base branch
+	baseBranch := *base
+	if baseBranch == "" {
+		baseBranch = cherrypick.DetectBaseBranch()
+	}
+
+	if baseBranch == "" {
+		fmt.Fprintln(os.Stderr, ui.FormatError("Could not detect base branch (main/master/prod). Please provide it with -b"))
+		os.Exit(1)
+	}
+
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Comparing %s → %s", baseBranch, *staging)))
+
+	// Find commits on staging but not on base
+	shas, messages, err := cherrypick.GetCommitsBetween(baseBranch, *staging, *limit)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error finding commits: %v", err)))
+		os.Exit(1)
+	}
+
+	if len(shas) == 0 {
+		fmt.Println(ui.FormatWarning(fmt.Sprintf("No commits found on %s that are not on %s", *staging, baseBranch)))
+		return
+	}
+
+	// Interactive commit selection
+	var options []string
+	for i := 0; i < len(shas); i++ {
+		options = append(options, fmt.Sprintf("[%s] %s", shas[i][:7], messages[i]))
+	}
+	options = append(options, "All")
+
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Found %d commit(s). Please select the ones to cherry-pick:", len(shas))))
+	
+	selection, err := ui.Choose("Select commits to cherry-pick", options, "", true)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
+		os.Exit(1)
+	}
+
+	var commitsToPick []string
+	if selection == "" {
+		fmt.Println(ui.FormatInfo("No commits selected. Operation cancelled"))
+		return
+	}
+
+	selectedLines := strings.Split(selection, "\n")
+	for _, line := range selectedLines {
+		if line == "All" {
+			commitsToPick = shas
+			break
+		}
+		parts := strings.Split(line, " ")
+		if len(parts) == 0 {
+			continue
+		}
+		shaPart := strings.Trim(parts[0], "[]")
+		for _, s := range shas {
+			if strings.HasPrefix(s, shaPart) {
+				commitsToPick = append(commitsToPick, s)
+				break
+			}
+		}
+	}
+
+	if len(commitsToPick) == 0 {
+		fmt.Println(ui.FormatInfo("No commits selected. Operation cancelled"))
+		return
+	}
+
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Selected %d commit(s) to cherry-pick", len(commitsToPick))))
+
+	prodBranch := fmt.Sprintf("%s-prod", ticketID)
+
+	if !*yes {
+		confirmed, err := ui.Confirm(fmt.Sprintf("Create branch %s from %s and cherry-pick %d commits?", prodBranch, baseBranch, len(commitsToPick)), false)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
+			os.Exit(1)
+		}
+		if !confirmed {
+			fmt.Println(ui.FormatInfo("Operation cancelled"))
+			return
+		}
+	}
+
+	// Execute
+	if err := cherrypick.ExecuteCherrypick(baseBranch, prodBranch, commitsToPick); err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Cherry-pick failed: %v", err)))
+
+		os.Exit(1)
+	}
+
+	fmt.Println(ui.FormatSuccess(fmt.Sprintf("Successfully created %s and cherry-picked %d commits!", prodBranch, len(commitsToPick))))
+}
+
 func promptBranchType(types map[string]string, defaultType string) string {
 	typeList := make([]string, 0, len(types))
 	for key := range types {
 		typeList = append(typeList, key)
 	}
 
-	choice, err := ui.Choose("Select branch type:", typeList, defaultType)
+	choice, err := ui.Choose("Select branch type:", typeList, defaultType, false)
 	if err != nil {
 		fmt.Println(ui.FormatError(fmt.Sprintf("Error selecting branch type, using default: %s", defaultType)))
 		return defaultType

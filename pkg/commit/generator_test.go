@@ -10,7 +10,7 @@ import (
 func TestGenerator_buildPrompt(t *testing.T) {
 	cfg := config.CommitConfig{
 		Types:  []string{"feat", "fix", "docs"},
-		Prompt: "Types: {{.Types}}\nFiles: {{.Files}}\nDiff: {{.Diff}}",
+		Prompt: "Branch: {{.Branch}}\nTypes: {{.Types}}\nFiles: {{.Files}}\nDiff: {{.Diff}}",
 	}
 	llmCfg := config.LLMConfig{
 		Provider: "ollama",
@@ -32,7 +32,11 @@ func TestGenerator_buildPrompt(t *testing.T) {
 	files := []string{"file.go", "other.go"}
 	recentCommits := []string{"feat(api): add endpoint", "fix(core): resolve bug"}
 
-	prompt := g.buildPrompt(diff, files, recentCommits)
+	prompt := g.buildPrompt(diff, files, recentCommits, "feature/PROJ-123")
+
+	if !strings.Contains(prompt, "Branch: feature/PROJ-123") {
+		t.Error("Prompt should contain the current branch name")
+	}
 
 	if !strings.Contains(prompt, "feat, fix, docs") {
 		t.Error("Prompt should contain commit types")

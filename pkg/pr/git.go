@@ -138,14 +138,61 @@ func GetRemoteURL(remote string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+// resolveSSHHost returns the hostname ssh connects to for host, expanding
+// aliases from ~/.ssh/config. Falls back to host if it cannot be resolved.
+var resolveSSHHost = func(host string) string {
+	if host == "" || host[0] == '-' {
+		return host
+	}
+	for _, c := range host {
+		if !isSafeChar(c, "-_.") {
+			return host
+		}
+	}
+
+	cmd := exec.Command("ssh", "-G", "--", host) // #nosec G204 -- host is validated above
+	output, err := cmd.Output()
+	if err != nil {
+		return host
+	}
+	for _, line := range strings.Split(string(output), "\n") {
+		if name, found := strings.CutPrefix(line, "hostname "); found {
+			return strings.TrimSpace(name)
+		}
+	}
+	return host
+}
+
+// splitSCPRemote splits an scp-style SSH remote ([user@]host:path) into host and path.
+func splitSCPRemote(remoteURL string) (host, path string, ok bool) {
+	if strings.Contains(remoteURL, "://") {
+		return "", "", false
+	}
+	host, path, found := strings.Cut(remoteURL, ":")
+	if !found || strings.Contains(host, "/") {
+		return "", "", false
+	}
+	if idx := strings.LastIndex(host, "@"); idx >= 0 {
+		host = host[idx+1:]
+	}
+	if host == "" {
+		return "", "", false
+	}
+	return host, path, true
+}
+
 // ParseGitHubRepo extracts owner and repo from a GitHub remote URL.
-// Supports HTTPS (https://github.com/owner/repo.git) and SSH (git@github.com:owner/repo.git).
+// Supports HTTPS (https://github.com/owner/repo.git) and SSH (git@github.com:owner/repo.git),
+// including SSH host aliases that resolve to github.com (git@github-work:owner/repo.git).
 // Returns empty strings and false if the remote is not a GitHub URL.
 func ParseGitHubRepo(remoteURL string) (owner, repo string, ok bool) {
 	remoteURL = strings.TrimSpace(remoteURL)
 
 	var path string
-	if after, found := strings.CutPrefix(remoteURL, "git@github.com:"); found {
+	if host, after, found := splitSCPRemote(remoteURL); found {
+		if !strings.EqualFold(host, "github.com") && !strings.EqualFold(resolveSSHHost(host), "github.com") {
+			return "", "", false
+		}
 		path = after
 	} else if strings.Contains(remoteURL, "github.com/") {
 		idx := strings.Index(remoteURL, "github.com/")
