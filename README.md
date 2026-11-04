@@ -23,6 +23,20 @@ A CLI tool that automates Git workflows. Generate AI-powered commit messages and
 
 ## Installation
 
+### Install Script
+
+For Linux and macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Kazuto/Weave/master/install.sh | sh
+```
+
+This installs the latest release to `~/.local/bin` after verifying its checksum, so `weave update` works there without `sudo`. Set `WEAVE_INSTALL_DIR` to choose another directory, or `WEAVE_VERSION` to install a specific release:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Kazuto/Weave/master/install.sh | WEAVE_VERSION=v0.1.0 sh
+```
+
 ### Using Go Install
 
 ```bash
@@ -55,9 +69,10 @@ Available platforms:
 
 ```bash
 # Example: Linux amd64
-curl -L https://github.com/Kazuto/Weave/releases/latest/download/weave-linux-amd64 -o weave
-chmod +x weave
-sudo mv weave /usr/local/bin/
+VERSION=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Kazuto/Weave/releases/latest | sed 's#.*/##')
+curl -fsSL "https://github.com/Kazuto/Weave/releases/download/${VERSION}/weave-${VERSION}-linux-amd64.tar.gz" | tar -xz
+chmod +x weave-linux-amd64
+sudo mv weave-linux-amd64 /usr/local/bin/weave
 ```
 
 ### Verify Installation
@@ -66,6 +81,16 @@ sudo mv weave /usr/local/bin/
 weave version
 weave help
 ```
+
+### Updating
+
+```bash
+weave update
+```
+
+This downloads the latest release, verifies its checksum, and replaces the current binary. If the binary is in a directory you can't write to, such as `/usr/local/bin`, run it with `sudo`. If you installed with `go install`, run the same `go install` command again instead.
+
+Weave checks GitHub for a new release at most once a day and shows a notice after a command finishes. It doesn't check in CI or when stderr isn't a terminal. To turn the check off, set `WEAVE_NO_UPDATE_CHECK=1`.
 
 ## Usage
 
@@ -76,6 +101,7 @@ Commands:
   commit      Generate an AI-powered commit message
   branch      Generate a branch name from a Jira ticket
   pr          Generate an AI-powered pull request description
+  update      Install the latest release
   version     Show version information
   help        Show this help message
 ```
