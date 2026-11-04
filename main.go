@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"os"
 	"os/exec"
@@ -16,6 +19,7 @@ import (
 	"github.com/Kazuto/Weave/pkg/pr"
 	"github.com/Kazuto/Weave/pkg/spinner"
 	"github.com/Kazuto/Weave/pkg/ui"
+	"github.com/Kazuto/Weave/pkg/update"
 	"github.com/Kazuto/Weave/pkg/version"
 )
 
@@ -27,13 +31,15 @@ func main() {
 
 	switch os.Args[1] {
 	case "commit":
-		runCommit(os.Args[2:])
+		withUpdateNotice(runCommit, os.Args[2:])
 	case "cherrypick":
-		runCherrypick(os.Args[2:])
+		withUpdateNotice(runCherrypick, os.Args[2:])
 	case "branch":
-		runBranch(os.Args[2:])
+		withUpdateNotice(runBranch, os.Args[2:])
 	case "pr":
-		runPR(os.Args[2:])
+		withUpdateNotice(runPR, os.Args[2:])
+	case "update":
+		runUpdate()
 	case "version", "-v", "--version":
 		fmt.Printf("weave %s\n", version.Version)
 	case "help", "-h", "--help":
@@ -56,10 +62,72 @@ Commands:
   branch      Generate a branch name from a Jira ticket
   pr          Generate an AI-powered pull request description
   cherrypick  Automate production branch creation and cherry-picking
+  update      Install the latest release
   version     Show version information
   help        Show this help message
 
 Run 'weave <command> --help' for more information on a command.`)
+}
+
+// withUpdateNotice runs a command, then mentions a newer release if there is one.
+func withUpdateNotice(run func([]string), args []string) {
+	check := update.StartCheck()
+
+	run(args)
+
+	if notice := check.Notice(); notice != "" {
+		fmt.Fprintln(os.Stderr, ui.FormatInfo(notice))
+	}
+}
+
+func runUpdate() {
+	if err := installLatestRelease(); err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(err.Error()))
+		os.Exit(1)
+	}
+}
+
+func installLatestRelease() error {
+	build := update.CurrentBuild()
+	if build.GoInstall {
+		fmt.Println(ui.FormatInfo("Installed with go install. Update with: go install github.com/Kazuto/Weave@latest"))
+		return nil
+	}
+	if build.Version == "" {
+		return fmt.Errorf("this is a development build (%s), so it can't update itself. Rebuild it from source or install a release", version.Version)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), update.InstallTimeout)
+	defer cancel()
+
+	client := update.NewClient()
+	release, err := client.Latest(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check for updates: %w", err)
+	}
+
+	if !update.IsNewer(release.Version, build.Version) {
+		fmt.Println(ui.FormatSuccess(fmt.Sprintf("Already up to date (%s)", build.Version)))
+		return nil
+	}
+	if !release.Ready {
+		fmt.Println(ui.FormatWarning(fmt.Sprintf("%s isn't ready to install yet. Try again in a few minutes", release.Version)))
+		return nil
+	}
+
+	spin := spinner.New(fmt.Sprintf("Installing %s", release.Version))
+	spin.Start()
+	err = client.Install(ctx, release.Version)
+	spin.Stop(err == nil)
+	if err != nil {
+		if errors.Is(err, fs.ErrPermission) {
+			return fmt.Errorf("%w. Try running it with sudo: sudo weave update", err)
+		}
+		return err
+	}
+
+	fmt.Println(ui.FormatSuccess(fmt.Sprintf("Updated from %s to %s", build.Version, release.Version)))
+	return nil
 }
 
 func runCommit(args []string) {
