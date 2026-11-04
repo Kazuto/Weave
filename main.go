@@ -614,6 +614,13 @@ func runCherrypick(args []string) {
 		os.Exit(1)
 	}
 
+	// Update the source branch first so the commit list includes what is on the remote
+	fmt.Println(ui.FormatInfo(fmt.Sprintf("Updating %s from origin", *staging)))
+	if err := cherrypick.UpdateSourceBranch(*staging); err != nil {
+		fmt.Fprintln(os.Stderr, ui.FormatError(fmt.Sprintf("Error updating source branch: %v", err)))
+		os.Exit(1)
+	}
+
 	fmt.Println(ui.FormatInfo(fmt.Sprintf("Comparing %s → %s", baseBranch, *staging)))
 
 	// Find commits on staging but not on base
