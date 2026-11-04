@@ -4,7 +4,42 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
+
+// UpdateSourceBranch fast-forwards the source branch from origin without switching branches,
+// so nothing has changed in the working tree if the user later cancels.
+func UpdateSourceBranch(branch string) error {
+	if err := validateRef(branch); err != nil {
+		return err
+	}
+
+	current, err := GetCurrentBranch()
+	if err != nil {
+		return err
+	}
+
+	var args []string
+	switch {
+	case branch == current:
+		// git refuses to fetch into the checked-out branch.
+		args = []string{"pull", "--ff-only", "origin", branch}
+	case strings.HasPrefix(branch, "origin/"):
+		// A remote-tracking ref is updated by a plain fetch.
+		args = []string{"fetch", "origin", strings.TrimPrefix(branch, "origin/")}
+	default:
+		args = []string{"fetch", "origin", branch + ":" + branch}
+	}
+
+	cmd := exec.Command("git", args...) // #nosec G204 -- branch is validated above
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to pull latest changes for %s: %w", branch, err)
+	}
+
+	return nil
+}
 
 // ExecuteCherrypick performs the full process of updating the base branch, creating a new branch, and cherry-picking commits.
 func ExecuteCherrypick(baseBranch, prodBranch string, commits []string) error {
