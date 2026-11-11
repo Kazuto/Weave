@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kazuto/Weave/pkg/config"
+	"github.com/Kazuto/weave/pkg/config"
 )
 
 type OpenAIClient struct {

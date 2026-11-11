@@ -218,30 +218,30 @@ func TestParseGitHubRepo(t *testing.T) {
 	}{
 		{
 			name:      "HTTPS with .git",
-			remoteURL: "https://github.com/Kazuto/Weave.git",
+			remoteURL: "https://github.com/Kazuto/weave.git",
 			wantOwner: "Kazuto",
-			wantRepo:  "Weave",
+			wantRepo:  "weave",
 			wantOk:    true,
 		},
 		{
 			name:      "HTTPS without .git",
-			remoteURL: "https://github.com/Kazuto/Weave",
+			remoteURL: "https://github.com/Kazuto/weave",
 			wantOwner: "Kazuto",
-			wantRepo:  "Weave",
+			wantRepo:  "weave",
 			wantOk:    true,
 		},
 		{
 			name:      "SSH with .git",
-			remoteURL: "git@github.com:Kazuto/Weave.git",
+			remoteURL: "git@github.com:Kazuto/weave.git",
 			wantOwner: "Kazuto",
-			wantRepo:  "Weave",
+			wantRepo:  "weave",
 			wantOk:    true,
 		},
 		{
 			name:      "SSH without .git",
-			remoteURL: "git@github.com:Kazuto/Weave",
+			remoteURL: "git@github.com:Kazuto/weave",
 			wantOwner: "Kazuto",
-			wantRepo:  "Weave",
+			wantRepo:  "weave",
 			wantOk:    true,
 		},
 		{
@@ -253,9 +253,9 @@ func TestParseGitHubRepo(t *testing.T) {
 		},
 		{
 			name:      "SSH host alias resolving to github.com",
-			remoteURL: "git@github-kazuto:Kazuto/Weave.git",
+			remoteURL: "git@github-kazuto:Kazuto/weave.git",
 			wantOwner: "Kazuto",
-			wantRepo:  "Weave",
+			wantRepo:  "weave",
 			wantOk:    true,
 		},
 		{
@@ -318,9 +318,9 @@ func TestParseGitHubRepo(t *testing.T) {
 }
 
 func TestBuildGitHubPRURL(t *testing.T) {
-	url := BuildGitHubPRURL("Kazuto", "Weave", "main", "feature/test", "## Summary\nTest PR", "")
+	url := BuildGitHubPRURL("Kazuto", "weave", "main", "feature/test", "## Summary\nTest PR", "")
 
-	if !strings.HasPrefix(url, "https://github.com/Kazuto/Weave/compare/main...feature/test?") {
+	if !strings.HasPrefix(url, "https://github.com/Kazuto/weave/compare/main...feature/test?") {
 		t.Errorf("URL has wrong base: %s", url)
 	}
 	if !strings.Contains(url, "expand=1") {

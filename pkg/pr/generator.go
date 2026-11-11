@@ -3,8 +3,8 @@ package pr
 import (
 	"strings"
 
-	"github.com/Kazuto/Weave/pkg/config"
-	"github.com/Kazuto/Weave/pkg/llm"
+	"github.com/Kazuto/weave/pkg/config"
+	"github.com/Kazuto/weave/pkg/llm"
 )
 
 type PRContext struct {

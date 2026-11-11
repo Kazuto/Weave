@@ -1,7 +1,7 @@
 # Weave
 
-[![Test](https://github.com/Kazuto/Weave/actions/workflows/ci.yml/badge.svg)](https://github.com/Kazuto/Weave/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Kazuto/Weave)](https://goreportcard.com/report/github.com/Kazuto/Weave)
+[![Test](https://github.com/Kazuto/weave/actions/workflows/ci.yml/badge.svg)](https://github.com/Kazuto/weave/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Kazuto/weave)](https://goreportcard.com/report/github.com/Kazuto/weave)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A CLI tool that automates Git workflows. Generate AI-powered commit messages and pull request descriptions using local or remote LLMs, and create GitFlow-compliant branch names from Jira tickets.
@@ -28,25 +28,25 @@ A CLI tool that automates Git workflows. Generate AI-powered commit messages and
 For Linux and macOS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kazuto/Weave/master/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Kazuto/weave/main/install.sh | sh
 ```
 
 This installs the latest release to `~/.local/bin` after verifying its checksum, so `weave update` works there without `sudo`. Set `WEAVE_INSTALL_DIR` to choose another directory, or `WEAVE_VERSION` to install a specific release:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kazuto/Weave/master/install.sh | WEAVE_VERSION=v0.1.0 sh
+curl -fsSL https://raw.githubusercontent.com/Kazuto/weave/main/install.sh | WEAVE_VERSION=v0.1.0 sh
 ```
 
 ### Using Go Install
 
 ```bash
-go install github.com/Kazuto/Weave@latest
+go install github.com/Kazuto/weave@latest
 ```
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/Kazuto/Weave.git
+git clone https://github.com/Kazuto/weave.git
 cd Weave
 make build
 ```
@@ -59,7 +59,7 @@ make install
 
 ### Binary Releases
 
-Download pre-built binaries from the [releases page](https://github.com/Kazuto/Weave/releases).
+Download pre-built binaries from the [releases page](https://github.com/Kazuto/weave/releases).
 
 Available platforms:
 
@@ -69,8 +69,8 @@ Available platforms:
 
 ```bash
 # Example: Linux amd64
-VERSION=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Kazuto/Weave/releases/latest | sed 's#.*/##')
-curl -fsSL "https://github.com/Kazuto/Weave/releases/download/${VERSION}/weave-${VERSION}-linux-amd64.tar.gz" | tar -xz
+VERSION=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Kazuto/weave/releases/latest | sed 's#.*/##')
+curl -fsSL "https://github.com/Kazuto/weave/releases/download/${VERSION}/weave-${VERSION}-linux-amd64.tar.gz" | tar -xz
 chmod +x weave-linux-amd64
 sudo mv weave-linux-amd64 /usr/local/bin/weave
 ```
@@ -407,7 +407,7 @@ jira init
 ### Setup
 
 ```bash
-git clone https://github.com/Kazuto/Weave.git
+git clone https://github.com/Kazuto/weave.git
 cd Weave
 make dev-setup
 ```

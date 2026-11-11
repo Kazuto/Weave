@@ -3,7 +3,7 @@ package llm
 import (
 	"fmt"
 
-	"github.com/Kazuto/Weave/pkg/config"
+	"github.com/Kazuto/weave/pkg/config"
 )
 
 // NewProvider creates a new LLM provider based on the configuration
