@@ -1,7 +1,7 @@
 BINARY_NAME=weave
 VERSION?=$(shell git describe --tags --always --dirty)
 BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
-LDFLAGS=-ldflags "-X github.com/Kazuto/Weave/pkg/version.Version=$(VERSION) -X github.com/Kazuto/Weave/pkg/version.BuildTime=$(BUILD_TIME)"
+LDFLAGS=-ldflags "-X github.com/Kazuto/weave/pkg/version.Version=$(VERSION) -X github.com/Kazuto/weave/pkg/version.BuildTime=$(BUILD_TIME)"
 
 # Default target
 .PHONY: all

@@ -101,7 +101,7 @@ func (c *Check) Notice() string {
 
 	command := "weave update"
 	if c.build.GoInstall {
-		command = "go install github.com/Kazuto/Weave@latest"
+		command = "go install github.com/Kazuto/weave@latest"
 	}
 
 	return fmt.Sprintf("New version available: %s → %s. Run `%s` to install it.", c.build.Version, c.latest, command)

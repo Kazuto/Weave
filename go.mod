@@ -1,4 +1,4 @@
-module github.com/Kazuto/Weave
+module github.com/Kazuto/weave
 
 go 1.24.2
 

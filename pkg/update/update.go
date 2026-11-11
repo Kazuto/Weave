@@ -24,12 +24,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kazuto/Weave/pkg/version"
+	"github.com/Kazuto/weave/pkg/version"
 )
 
 const (
-	latestReleaseURL   = "https://api.github.com/repos/Kazuto/Weave/releases/latest"
-	releaseDownloadURL = "https://github.com/Kazuto/Weave/releases/download"
+	latestReleaseURL   = "https://api.github.com/repos/Kazuto/weave/releases/latest"
+	releaseDownloadURL = "https://github.com/Kazuto/weave/releases/download"
 	checksumsName      = "checksums.txt"
 
 	// InstallTimeout bounds a full `weave update`, including the download.

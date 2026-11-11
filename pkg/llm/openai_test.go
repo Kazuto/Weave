@@ -3,7 +3,7 @@ package llm
 import (
 	"testing"
 
-	"github.com/Kazuto/Weave/pkg/config"
+	"github.com/Kazuto/weave/pkg/config"
 )
 
 func TestNewOpenAIClient(t *testing.T) {

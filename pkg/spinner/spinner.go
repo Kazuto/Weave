@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Kazuto/Weave/pkg/ui"
+	"github.com/Kazuto/weave/pkg/ui"
 )
 
 type Spinner struct {
