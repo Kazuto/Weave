@@ -2,9 +2,9 @@ name: CI/CD
 
 on:
   push:
-    branches: [master, develop]
+    branches: [main, develop]
   pull_request:
-    branches: [master]
+    branches: [main, develop]
   release:
     types: [created]
   # Started on the tag by release.yml, whose release doesn't fire the event above
