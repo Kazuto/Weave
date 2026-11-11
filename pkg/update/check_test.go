@@ -179,7 +179,7 @@ func TestNoticeForGoInstallUsesGoInstall(t *testing.T) {
 
 	notice := startCheck(client, statePathIn(t), build).Notice()
 
-	if !strings.Contains(notice, "`go install github.com/Kazuto/Weave@latest`") {
+	if !strings.Contains(notice, "`go install github.com/Kazuto/weave@latest`") {
 		t.Errorf("Notice() = %q", notice)
 	}
 	if strings.Contains(notice, "weave update") {

@@ -2,7 +2,7 @@
 #
 # Installs a Weave release on Linux or macOS:
 #
-#   curl -fsSL https://raw.githubusercontent.com/Kazuto/Weave/master/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Kazuto/weave/main/install.sh | sh
 #
 # Environment:
 #   WEAVE_INSTALL_DIR  Where to install (default: ~/.local/bin)
@@ -10,7 +10,7 @@
 
 set -eu
 
-RELEASES_URL="https://github.com/Kazuto/Weave/releases"
+RELEASES_URL="https://github.com/Kazuto/weave/releases"
 
 tmp=""
 staged=""

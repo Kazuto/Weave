@@ -12,15 +12,15 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Kazuto/Weave/pkg/branch"
-	"github.com/Kazuto/Weave/pkg/cherrypick"
-	"github.com/Kazuto/Weave/pkg/commit"
-	"github.com/Kazuto/Weave/pkg/config"
-	"github.com/Kazuto/Weave/pkg/pr"
-	"github.com/Kazuto/Weave/pkg/spinner"
-	"github.com/Kazuto/Weave/pkg/ui"
-	"github.com/Kazuto/Weave/pkg/update"
-	"github.com/Kazuto/Weave/pkg/version"
+	"github.com/Kazuto/weave/pkg/branch"
+	"github.com/Kazuto/weave/pkg/cherrypick"
+	"github.com/Kazuto/weave/pkg/commit"
+	"github.com/Kazuto/weave/pkg/config"
+	"github.com/Kazuto/weave/pkg/pr"
+	"github.com/Kazuto/weave/pkg/spinner"
+	"github.com/Kazuto/weave/pkg/ui"
+	"github.com/Kazuto/weave/pkg/update"
+	"github.com/Kazuto/weave/pkg/version"
 )
 
 func main() {
@@ -90,7 +90,7 @@ func runUpdate() {
 func installLatestRelease() error {
 	build := update.CurrentBuild()
 	if build.GoInstall {
-		fmt.Println(ui.FormatInfo("Installed with go install. Update with: go install github.com/Kazuto/Weave@latest"))
+		fmt.Println(ui.FormatInfo("Installed with go install. Update with: go install github.com/Kazuto/weave@latest"))
 		return nil
 	}
 	if build.Version == "" {

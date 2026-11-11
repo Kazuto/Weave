@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Kazuto/Weave/pkg/config"
+	"github.com/Kazuto/weave/pkg/config"
 )
 
 func TestNewGenerator(t *testing.T) {
