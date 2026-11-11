@@ -36,20 +36,13 @@ jobs:
             const { owner, repo } = context.repo;
 
             // Commits on develop that aren't on master yet
-            let commits;
-            try {
-              const { data } = await github.rest.repos.compareCommitsWithBasehead({
-                owner,
-                repo,
-                basehead: `${MASTER}...${DEVELOP}`,
-              });
-              commits = data.commits;
-            } catch (error) {
-              // develop is briefly gone between merging a release and reset-develop.yml recreating it
-              if (error.status !== 404) throw error;
-              core.info(`${DEVELOP} doesn't exist right now`);
-              return;
-            }
+            const {
+              data: { commits },
+            } = await github.rest.repos.compareCommitsWithBasehead({
+              owner,
+              repo,
+              basehead: `${MASTER}...${DEVELOP}`,
+            });
 
             // Map commits to the PRs that brought them in. A commit pushed directly is its own change.
             const changes = new Map();
