@@ -25,7 +25,7 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
-            const MASTER = 'master';
+            const MAIN = 'main';
             const DEVELOP = 'develop';
             const SECTIONS = {
               breaking: 'Breaking Changes',
@@ -35,13 +35,13 @@ jobs:
             };
             const { owner, repo } = context.repo;
 
-            // Commits on develop that aren't on master yet
+            // Commits on develop that aren't on main yet
             const {
               data: { commits },
             } = await github.rest.repos.compareCommitsWithBasehead({
               owner,
               repo,
-              basehead: `${MASTER}...${DEVELOP}`,
+              basehead: `${MAIN}...${DEVELOP}`,
             });
 
             // Map commits to the PRs that brought them in. A commit pushed directly is its own change.
@@ -132,7 +132,7 @@ jobs:
               repo,
               state: 'open',
               head: `${owner}:${DEVELOP}`,
-              base: MASTER,
+              base: MAIN,
             });
 
             if (open.length > 0) {
@@ -143,7 +143,7 @@ jobs:
                 owner,
                 repo,
                 head: DEVELOP,
-                base: MASTER,
+                base: MAIN,
                 title,
                 body,
               });
